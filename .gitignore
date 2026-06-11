@@ -11,7 +11,8 @@ sdk/node_modules/
 contracts/out/
 contracts/cache/
 contracts/broadcast/**/dry-run/
-contracts/lib/**/.git
+# deps are installed by pinned tag via contracts/install-deps.sh (not vendored)
+contracts/lib/
 
 # ts build
 sdk/dist/

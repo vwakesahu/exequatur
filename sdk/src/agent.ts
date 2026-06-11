@@ -54,6 +54,7 @@ export async function attemptPayment(params: {
   intent: string;
   recipient: Address;
   amount: bigint;
+  context?: string;
 }): Promise<PaymentResult> {
   const { ctx, service, chain } = params;
   const leaf = chain[0];
@@ -65,6 +66,7 @@ export async function attemptPayment(params: {
     recipient: params.recipient,
     amount: params.amount,
     symbol: "mUSDC",
+    context: params.context,
   });
 
   // Every delegation in the chain that carries the firewall caveat must be attested (each hop is

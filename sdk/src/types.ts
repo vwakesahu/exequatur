@@ -16,6 +16,12 @@ export interface ProposedAction {
     amount: string; // decimal string in token units
     symbol?: string;
   };
+  /**
+   * Untrusted context the agent observed when it formed this action (a product page, tool output,
+   * another agent's message). May be attacker-controlled — the policy treats it as data, never as
+   * instructions, and uses it to catch prompt-injection / social-engineering.
+   */
+  context?: string;
 }
 
 /** The policy brain's decision about whether an action matches intent and is safe. */

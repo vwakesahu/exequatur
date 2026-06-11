@@ -10,6 +10,7 @@ export function erc20TransferAction(params: {
   amount: bigint;
   decimals?: number;
   symbol?: string;
+  context?: string;
 }): ProposedAction {
   const callData = encodeFunctionData({
     abi: erc20Abi,
@@ -29,6 +30,7 @@ export function erc20TransferAction(params: {
       amount: formatUnits(params.amount, params.decimals ?? 6),
       symbol: params.symbol,
     },
+    context: params.context,
   };
 }
 

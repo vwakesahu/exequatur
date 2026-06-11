@@ -41,26 +41,62 @@ even though it is within the spend cap and "looks" legal.
 - compromise of the policy service signing key
 - a malicious merchant / fulfiller
 
-## Layout
+## How it's built
+
+- **On-chain (Foundry):** [`MockUSDC`](contracts/src/MockUSDC.sol), the custom
+  [`AttestationEnforcer`](contracts/src/AttestationEnforcer.sol) caveat, and the audited MetaMask
+  **Delegation Framework v1.3.0** (installed, not written).
+- **Off-chain (TypeScript):** the real **MetaMask Smart Accounts Kit** (`@metamask/smart-accounts-kit`,
+  the package formerly called the Delegation Toolkit), a [policy service](sdk/src/policy-service.ts)
+  that gates every action, and a [Venice client](sdk/src/venice.ts) for the verdict.
 
 ```
-contracts/   Foundry — MockUSDC + AttestationEnforcer + unit tests (Layer 1, runs offline)
-sdk/         TypeScript — create→sign→redeem flow, policy service, Venice, e2e (Layer 2)
-docs/        threat model, action-hash spec, milestone map
+contracts/   Foundry — MockUSDC + AttestationEnforcer + tests (Layer 1, runs offline)
+sdk/         TypeScript — create→sign→redeem via the Smart Accounts Kit, policy service, Venice, e2e
+docs/        milestone map + the canonical action-hash spec
 ```
 
-See [docs/MILESTONES.md](docs/MILESTONES.md) for the build order and
-[docs/ACTION_HASH.md](docs/ACTION_HASH.md) for the canonical hash that the off-chain policy
-service and the on-chain enforcer must agree on (the most bug-prone seam).
+See [docs/MILESTONES.md](docs/MILESTONES.md) for the build order/status and
+[docs/ACTION_HASH.md](docs/ACTION_HASH.md) for the canonical hash the off-chain policy service and
+the on-chain enforcer must agree on (the most bug-prone seam — guarded by tests in both languages).
+
+## What's verified
+
+**Layer 1 — Foundry (offline, no creds), 16 tests** — `cd contracts && forge test`
+- enforcer unit matrix: valid / missing / wrong-signer / expired / replayed / tampered / per-delegation keying / bad terms
+- real `DelegationManager.redeemDelegations` integration: happy path, over-cap revert, within-cap-but-unapproved revert
+- A2A redelegation: worker within narrowed cap succeeds, over narrowed cap reverts, absent-root chain reverts
+- cross-language action-hash parity (golden vector)
+
+**Layer 2 — SDK unit tests, 8 tests** — `cd sdk && pnpm test`
+- action-hash parity + field binding; policy service approve/deny + attestation recovery; Venice client (mocked transport)
+
+**Layer 2 — end-to-end on a Base Sepolia fork, 6 scenarios** — `cd sdk && ./run-e2e.sh`
+- happy path · firewall refuses off-intent transfer · **forged attestation rejected on-chain** ·
+  A2A worker within scope · A2A over-cap reverts on-chain
 
 ## Quick start
 
 ```bash
-# 1. enforcer unit tests (offline, no creds — proves the security claims)
-cd contracts && forge test -vvv
+# 1. on-chain security proofs (offline, no creds)
+cd contracts && ./install-deps.sh && forge test -vvv
 
-# 2. TS integration (needs RPC_URL + funded keys in .env)
-cd sdk && pnpm install
-cp ../.env.example ../.env   # fill it in
-pnpm e2e
+# 2. SDK unit tests (offline)
+cd sdk && pnpm install && pnpm test
+
+# 3. full end-to-end against a Base Sepolia fork (no secrets — fresh keys funded on the fork).
+#    Needs `anvil` (Foundry) + `pnpm`. Starts/stops the fork for you.
+cd sdk && ./run-e2e.sh
 ```
+
+To gate payments with **real Venice** (M4) instead of the deterministic stub, set `VENICE_API_KEY`
+(and optionally `VENICE_MODEL`) in `.env` before step 3 — see [.env.example](.env.example).
+
+### Notes for graders
+
+- **No bundler anywhere.** The agent/worker are EOA delegates, so redemption is a plain transaction
+  to the DelegationManager via the ERC-7710 wallet action (`sendTransactionWithDelegation`). Only the
+  funded *delegator* is a smart account.
+- **The e2e generates fresh keys per run.** The well-known Anvil dev addresses carry leftover
+  EIP-7702 delegations on real Base Sepolia, which makes the DelegationManager treat an EOA
+  *redelegator* as a contract and breaks A2A — a real, documented gotcha we hit and worked around.

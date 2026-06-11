@@ -7,6 +7,30 @@ import { log } from "./log.js";
 import type { PolicyService } from "./policy-service.js";
 import type { Context } from "./setup.js";
 
+/** Selectors of AttestationEnforcer's custom errors (decodeRevertReason only knows framework ABIs). */
+const FIREWALL_ERRORS: Record<string, string> = {
+  "0xd052cd1d": "AttestationEnforcer.PolicySignatureMismatch (wrong/missing policy signature)",
+  "0x716dcc39": "AttestationEnforcer.AttestationExpired",
+  "0x17ee279c": "AttestationEnforcer.AttestationAlreadyUsed (replay)",
+  "0x86a371ad": "AttestationEnforcer.InvalidTermsLength",
+};
+
+function explainRevert(err: unknown): string {
+  const data = (() => {
+    if (err && typeof err === "object" && "walk" in err && typeof (err as { walk: unknown }).walk === "function") {
+      const w = (err as { walk: (fn: (e: unknown) => boolean) => unknown }).walk(
+        (e) => typeof (e as { data?: unknown }).data === "string",
+      );
+      return (w as { data?: string } | undefined)?.data;
+    }
+    return undefined;
+  })();
+  if (data && FIREWALL_ERRORS[data.slice(0, 10)]) return FIREWALL_ERRORS[data.slice(0, 10)];
+  const decoded = decodeRevertReason(err);
+  if (decoded) return `${decoded.errorName}: ${decoded.message}`;
+  return err instanceof Error ? err.message.split("\n")[0] : String(err);
+}
+
 export interface PaymentResult {
   executed: boolean;
   reason: string;
@@ -79,8 +103,7 @@ export async function attemptPayment(params: {
       txHash,
     };
   } catch (err) {
-    const decoded = decodeRevertReason(err);
-    const revertError = decoded ? `${decoded.errorName}: ${decoded.message}` : err instanceof Error ? err.message : String(err);
+    const revertError = explainRevert(err);
     log.note(`redemption reverted: ${revertError}`);
     return {
       executed: false,

@@ -3,6 +3,7 @@ import { attemptPayment } from "./agent.js";
 import { createRootDelegation, createWorkerRedelegation } from "./delegation.js";
 import { log } from "./log.js";
 import { buildPolicyService } from "./policy.js";
+import { PolicyService, makeAllowAllBrain } from "./policy-service.js";
 import { setup } from "./setup.js";
 
 let failures = 0;
@@ -59,6 +60,25 @@ async function main() {
   const a1 = await bal(ctx.attacker);
   check("payment to attacker was NOT executed (no attestation issued)", !r2.executed);
   check("attacker balance stayed 0", a1 === a0 && a1 === 0n);
+
+  log.section("Scenario 2b — unbypassable: a self-forged attestation is rejected on-chain");
+  // Model an attacker who runs their OWN rogue policy that signs with the agent's key (not the real
+  // policy key) and approves anything. The redemption carries a well-formed attestation — but the
+  // enforcer's terms pin the real policy signer, so it reverts on-chain.
+  const rogue = new PolicyService(ctx.agentKey, makeAllowAllBrain());
+  const r2b = await attemptPayment({
+    ctx,
+    service: rogue,
+    actor: "agent",
+    redeemerKey: ctx.agentKey,
+    chain: [root],
+    intent: "(rogue) drain to attacker",
+    recipient: ctx.attacker,
+    amount: parseUnits("10", 6),
+  });
+  const a2 = await bal(ctx.attacker);
+  check("forged (wrong-signer) attestation reverted on-chain", !r2b.executed && !!r2b.revertError);
+  check("attacker balance still 0 after forgery attempt", a2 === 0n);
 
   // ───────────────────────────── Scenario 3: A2A redelegation
   log.section("Scenario 3 — A2A: agent redelegates a narrower scope to a worker sub-agent");

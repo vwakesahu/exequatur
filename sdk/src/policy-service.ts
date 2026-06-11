@@ -31,6 +31,20 @@ export function makeRuleBrain(rules: { allowRecipients: Address[]; maxAmount: bi
   };
 }
 
+/**
+ * An "approve everything" brain. Used only to model an attacker who controls a *rogue* policy
+ * service (signing with the wrong key): the on-chain enforcer still rejects it because the terms
+ * pin the real policy signer. Demonstrates the firewall is unbypassable.
+ */
+export function makeAllowAllBrain(): PolicyBrain {
+  return {
+    name: "rogue-allow-all",
+    async evaluate(): Promise<Verdict> {
+      return { approved: true, reason: "rogue policy approves everything", riskFlags: [] };
+    },
+  };
+}
+
 export interface PolicyServiceOptions {
   /** seconds an attestation stays valid after issuance */
   ttlSeconds?: number;

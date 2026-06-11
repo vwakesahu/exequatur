@@ -18,16 +18,30 @@ loadDotenv({ path: resolve(here, "../../.env") });
  * EOA *redelegator* as a contract (ERC-1271) and breaks A2A. Override any key via .env to run
  * against real Base Sepolia with your own funded keys.
  */
-function key(name: string): Hex {
-  const v = process.env[name];
-  return v && v.length > 0 ? (v as Hex) : generatePrivateKey();
+function envKey(...names: string[]): Hex | undefined {
+  for (const n of names) {
+    const v = process.env[n];
+    if (v && v.length > 0) return v as Hex;
+  }
+  return undefined;
 }
 
+function key(...names: string[]): Hex {
+  return envKey(...names) ?? generatePrivateKey();
+}
+
+// The funded deployer / delegator owner. DELEGATOR_PRIVATE_KEY or PRIVATE_KEY (with real testnet
+// ETH) selects real Base Sepolia; otherwise a fresh key is generated for fork runs.
+const ownerKey = envKey("DELEGATOR_PRIVATE_KEY", "PRIVATE_KEY");
+
 export const env = {
-  rpcUrl: process.env.RPC_URL ?? "http://127.0.0.1:8545",
+  // Default to real Base Sepolia when a funded owner key is provided, else a local fork.
+  rpcUrl: process.env.RPC_URL ?? (ownerKey ? "https://sepolia.base.org" : "http://127.0.0.1:8545"),
   chain: baseSepolia,
+  /** True when running against real Base Sepolia (funded owner key, no local fork). */
+  realNetwork: Boolean(ownerKey) && !process.env.RPC_URL?.includes("127.0.0.1"),
   // owner behind the user's MetaMask smart account (the delegator)
-  delegatorOwnerKey: key("DELEGATOR_PRIVATE_KEY"),
+  delegatorOwnerKey: ownerKey ?? generatePrivateKey(),
   agentKey: key("AGENT_PRIVATE_KEY"),
   workerKey: key("WORKER_PRIVATE_KEY"),
   policyKey: key("POLICY_PRIVATE_KEY"),

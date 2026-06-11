@@ -4,7 +4,9 @@ import {
   type Hex,
   type PublicClient,
   createWalletClient,
+  formatEther,
   getContract,
+  parseEther,
   parseUnits,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -16,7 +18,7 @@ import {
 } from "@metamask/smart-accounts-kit";
 import { artifact } from "./artifacts.js";
 import { env, publicClient } from "./env.js";
-import { log } from "./log.js";
+import { explorer, log } from "./log.js";
 
 export interface Context {
   pub: PublicClient;
@@ -45,10 +47,9 @@ export async function setup(): Promise<Context> {
   log.step(`Network: chainId ${chainId} via ${env.rpcUrl}`);
   log.step(`Deployer / delegator owner: ${ownerAccount.address}`);
 
-  // On an Anvil fork, top up the (fresh) tx-sending accounts so no real funds are needed. On real
-  // networks anvil_setBalance is unavailable — the run then relies on funded keys from .env.
-  await fundOnFork(pub, [
-    ownerAccount.address,
+  // Fund the tx-sending accounts. On an Anvil fork this uses anvil_setBalance (free). On real
+  // Base Sepolia the owner (PRIVATE_KEY) tops up the fresh agent + worker EOAs with a little gas.
+  await fundActors(pub, deployer, [
     privateKeyToAccount(env.agentKey).address,
     privateKeyToAccount(env.workerKey).address,
   ]);
@@ -103,17 +104,38 @@ export async function setup(): Promise<Context> {
   };
 }
 
-async function fundOnFork(pub: PublicClient, addresses: Address[]): Promise<void> {
+const GAS_TOPUP = parseEther("0.004"); // per actor — well under any reasonable cap
+const GAS_MIN = parseEther("0.0015");
+
+async function fundActors(
+  pub: PublicClient,
+  deployer: ReturnType<typeof createWalletClient>,
+  addresses: Address[],
+): Promise<void> {
+  // Fork fast path: anvil_setBalance for owner + actors.
   try {
-    for (const address of addresses) {
-      await pub.request({
-        method: "anvil_setBalance" as never,
-        params: [address, "0x56BC75E2D63100000"] as never, // 100 ETH
-      });
+    for (const address of [deployer.account!.address, ...addresses]) {
+      await pub.request({ method: "anvil_setBalance" as never, params: [address, "0x56BC75E2D63100000"] as never });
     }
     log.step("Funded actors via anvil_setBalance (fork mode)");
+    return;
   } catch {
-    log.step("anvil_setBalance unavailable — assuming pre-funded keys (real network)");
+    /* real network — anvil_setBalance unavailable */
+  }
+
+  // Real network: owner is pre-funded; top up the fresh agent/worker EOAs for gas.
+  const ownerBal = await pub.getBalance({ address: deployer.account!.address });
+  log.step(`Real network: owner balance ${formatEther(ownerBal)} ETH`);
+  for (const address of addresses) {
+    if ((await pub.getBalance({ address })) >= GAS_MIN) continue;
+    const hash = await deployer.sendTransaction({
+      to: address,
+      value: GAS_TOPUP,
+      chain: env.chain,
+      account: deployer.account!,
+    });
+    await pub.waitForTransactionReceipt({ hash });
+    log.step(`Funded ${address} with ${formatEther(GAS_TOPUP)} ETH for gas`);
   }
 }
 
@@ -132,5 +154,6 @@ async function deploy(
   const receipt = await pub.waitForTransactionReceipt({ hash });
   if (!receipt.contractAddress) throw new Error(`${contract} deploy produced no address`);
   log.step(`Deployed ${contract} at ${receipt.contractAddress}`);
+  if (env.realNetwork) log.link(explorer.address(receipt.contractAddress));
   return receipt.contractAddress;
 }

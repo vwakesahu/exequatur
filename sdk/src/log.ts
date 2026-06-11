@@ -15,4 +15,11 @@ export const log = {
   fail: (msg: string) => console.log(`  ${c.red("✗")} ${msg}`),
   note: (msg: string) => console.log(`  ${c.yellow("›")} ${msg}`),
   policy: (msg: string) => console.log(`  ${c.yellow("⚖")} ${msg}`),
+  link: (msg: string) => console.log(`    ${c.dim(msg)}`),
+};
+
+/** Basescan (Base Sepolia) explorer links — only meaningful on the real network. */
+export const explorer = {
+  tx: (hash: string) => `https://sepolia.basescan.org/tx/${hash}`,
+  address: (addr: string) => `https://sepolia.basescan.org/address/${addr}`,
 };

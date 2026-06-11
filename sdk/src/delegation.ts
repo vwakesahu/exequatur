@@ -2,6 +2,7 @@ import {
   http,
   type Address,
   type Hex,
+  type TransactionReceipt,
   createWalletClient,
   encodeAbiParameters,
 } from "viem";
@@ -92,7 +93,7 @@ export async function redeem(params: {
   target: Address;
   data: Hex;
   value?: bigint;
-}): Promise<Hex> {
+}): Promise<TransactionReceipt> {
   const account = privateKeyToAccount(params.redeemerKey);
   const wallet = createWalletClient({ account, chain: env.chain, transport: http(env.rpcUrl) }).extend(
     erc7710WalletActions(),
@@ -106,6 +107,8 @@ export async function redeem(params: {
     permissionContext: params.chain,
     delegationManager: params.ctx.environment.DelegationManager,
   });
-  await params.ctx.pub.waitForTransactionReceipt({ hash });
-  return hash;
+  const receipt = await params.ctx.pub.waitForTransactionReceipt({ hash });
+  // A reverted tx still returns a receipt (viem does not throw) — treat it as a failed redemption.
+  if (receipt.status !== "success") throw new Error(`redemption tx reverted on-chain (${hash})`);
+  return receipt;
 }

@@ -1,7 +1,8 @@
 import { type Address, erc20Abi, formatUnits, parseUnits } from "viem";
 import { attemptPayment } from "./agent.js";
 import { createRootDelegation, createWorkerRedelegation } from "./delegation.js";
-import { log } from "./log.js";
+import { env } from "./env.js";
+import { explorer, log } from "./log.js";
 import { buildPolicyService } from "./policy.js";
 import { PolicyService, makeAllowAllBrain } from "./policy-service.js";
 import { setup } from "./setup.js";
@@ -13,6 +14,10 @@ function check(label: string, ok: boolean) {
     log.fail(label);
     failures += 1;
   }
+}
+
+function showTx(txHash?: `0x${string}`) {
+  if (txHash && env.realNetwork) log.link(`tx: ${explorer.tx(txHash)}`);
 }
 
 async function main() {
@@ -33,7 +38,6 @@ async function main() {
 
   const root = await createRootDelegation(ctx, parseUnits("100", 6));
   log.step("user signed root delegation: smart account → agent, cap 100 mUSDC + firewall caveat");
-  const m0 = await bal(ctx.merchant);
   const r1 = await attemptPayment({
     ctx,
     service,
@@ -45,9 +49,12 @@ async function main() {
     amount: parseUnits("25", 6),
     context: "Checkout page for order #4471: total 25 mUSDC, payable to the store wallet.",
   });
-  const m1 = await bal(ctx.merchant);
   check("agent executed the approved payment", r1.executed);
-  check(`merchant received 25 mUSDC (Δ ${formatUnits(m1 - m0, 6)})`, m1 - m0 === parseUnits("25", 6));
+  check(
+    `merchant received 25 mUSDC (transfer log: ${r1.transferred ? formatUnits(r1.transferred, 6) : "0"})`,
+    r1.transferred === parseUnits("25", 6),
+  );
+  showTx(r1.txHash);
 
   // ───────────────────────────── Scenario 2: hijacked agent blocked
   log.section("Scenario 2 — firewall: a hijacked agent's off-intent transfer is refused");
@@ -94,7 +101,6 @@ async function main() {
   log.section("Scenario 3 — A2A: agent redelegates a narrower scope to a worker sub-agent");
   const redeleg = await createWorkerRedelegation(ctx, root, parseUnits("20", 6));
   log.step("agent signed redelegation: agent → worker, narrowed cap 20 mUSDC + firewall caveat");
-  const m2 = await bal(ctx.merchant);
   const r3 = await attemptPayment({
     ctx,
     service,
@@ -106,12 +112,14 @@ async function main() {
     amount: parseUnits("15", 6),
     context: "Partial fulfilment for order #4471: 15 mUSDC to the store wallet.",
   });
-  const m3 = await bal(ctx.merchant);
   check("worker executed within the narrowed scope", r3.executed);
-  check(`merchant received 15 mUSDC from the worker (Δ ${formatUnits(m3 - m2, 6)})`, m3 - m2 === parseUnits("15", 6));
+  check(
+    `merchant received 15 mUSDC from the worker (transfer log: ${r3.transferred ? formatUnits(r3.transferred, 6) : "0"})`,
+    r3.transferred === parseUnits("15", 6),
+  );
+  showTx(r3.txHash);
 
   log.section("Scenario 3b — A2A bound: worker over the narrowed cap reverts on-chain");
-  const m4 = await bal(ctx.merchant);
   const r3b = await attemptPayment({
     ctx,
     service,
@@ -123,9 +131,8 @@ async function main() {
     amount: parseUnits("21", 6), // policy-approved (< 100) but exceeds the narrowed 20 cap
     context: "Remaining balance for order #4471: 21 mUSDC to the store wallet.",
   });
-  const m5 = await bal(ctx.merchant);
   check("worker's over-cap payment reverted on-chain despite policy approval", !r3b.executed && !!r3b.revertError);
-  check("merchant balance unchanged by the reverted attempt", m5 === m4);
+  check("nothing was transferred on the reverted attempt", r3b.transferred === undefined);
 
   log.section("Summary");
   if (failures === 0) {

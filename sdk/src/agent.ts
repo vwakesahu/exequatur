@@ -1,4 +1,4 @@
-import type { Address, Hex } from "viem";
+import { type Address, type Hex, type TransactionReceipt, erc20Abi, getAddress, parseEventLogs } from "viem";
 import type { Delegation } from "@metamask/smart-accounts-kit";
 import { decodeRevertReason } from "@metamask/smart-accounts-kit/utils";
 import { erc20TransferAction, transferCallData } from "./actions.js";
@@ -37,7 +37,17 @@ export interface PaymentResult {
   brain: string;
   riskFlags: string[];
   txHash?: Hex;
+  /** Amount actually moved to the recipient, decoded from the receipt's Transfer log. */
+  transferred?: bigint;
   revertError?: string;
+}
+
+/** Reads the actual ERC-20 amount transferred to `recipient` from a redemption receipt. */
+function transferredTo(receipt: TransactionReceipt, token: Address, recipient: Address): bigint {
+  const logs = parseEventLogs({ abi: erc20Abi, eventName: "Transfer", logs: receipt.logs });
+  return logs
+    .filter((l) => getAddress(l.address) === getAddress(token) && getAddress(l.args.to) === getAddress(recipient))
+    .reduce((sum, l) => sum + l.args.value, 0n);
 }
 
 /**
@@ -90,7 +100,7 @@ export async function attemptPayment(params: {
   });
 
   try {
-    const txHash = await redeem({
+    const receipt = await redeem({
       ctx,
       redeemerKey: params.redeemerKey,
       chain: redeemChain,
@@ -102,7 +112,8 @@ export async function attemptPayment(params: {
       reason: decision.reason,
       brain: decision.brain,
       riskFlags: decision.riskFlags,
-      txHash,
+      txHash: receipt.transactionHash,
+      transferred: transferredTo(receipt, ctx.usdc, params.recipient),
     };
   } catch (err) {
     const revertError = explainRevert(err);

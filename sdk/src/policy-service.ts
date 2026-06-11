@@ -1,7 +1,7 @@
 import { type Address, type Hex, getAddress, parseUnits } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { computeActionHash } from "./actionHash.js";
-import type { AuthorizeResult, PolicyBrain, ProposedAction, Verdict } from "./types.js";
+import type { Attestation, AuthorizeResult, PolicyBrain, ProposedAction, Verdict } from "./types.js";
 
 /**
  * A deterministic, offline policy brain used by the automated test matrix (the "stubbed Venice").
@@ -76,17 +76,43 @@ export class PolicyService {
     return this.brain.name;
   }
 
+  /** Authorize an action bound to a single delegation (single-agent path). */
   async authorize(intent: string, action: ProposedAction): Promise<AuthorizeResult> {
     const verdict = await this.brain.evaluate(intent, action);
     if (!verdict.approved) {
       return { approved: false, reason: verdict.reason, riskFlags: verdict.riskFlags, brain: this.brain.name };
     }
+    const attestation = await this.sign(action, action.delegationHash);
+    return { approved: true, reason: verdict.reason, riskFlags: verdict.riskFlags, brain: this.brain.name, attestation };
+  }
 
+  /**
+   * Authorize an action for a whole delegation chain (A2A): the brain runs ONCE on the action, and
+   * — only on approval — we issue a fresh attestation bound to EACH delegation hash that gates the
+   * action (every hop with the firewall caveat). Returns a map keyed by lowercased delegation hash.
+   */
+  async authorizeChain(
+    intent: string,
+    action: ProposedAction,
+    delegationHashes: Hex[],
+  ): Promise<{ approved: boolean; reason: string; riskFlags: string[]; brain: string; attestations?: Record<Hex, Attestation> }> {
+    const verdict = await this.brain.evaluate(intent, action);
+    if (!verdict.approved) {
+      return { approved: false, reason: verdict.reason, riskFlags: verdict.riskFlags, brain: this.brain.name };
+    }
+    const attestations: Record<Hex, Attestation> = {};
+    for (const dh of delegationHashes) {
+      attestations[dh.toLowerCase() as Hex] = await this.sign(action, dh);
+    }
+    return { approved: true, reason: verdict.reason, riskFlags: verdict.riskFlags, brain: this.brain.name, attestations };
+  }
+
+  private async sign(action: ProposedAction, delegationHash: Hex): Promise<Attestation> {
     const nonce = this.nextNonce();
     const expiry = BigInt(this.now() + this.ttlSeconds);
     const actionHash = computeActionHash({
       chainId: action.chainId,
-      delegationHash: action.delegationHash,
+      delegationHash,
       target: action.target,
       value: action.value,
       callData: action.callData,
@@ -94,13 +120,6 @@ export class PolicyService {
       expiry,
     });
     const signature = await this.account.sign({ hash: actionHash });
-
-    return {
-      approved: true,
-      reason: verdict.reason,
-      riskFlags: verdict.riskFlags,
-      brain: this.brain.name,
-      attestation: { signature, nonce, expiry },
-    };
+    return { signature, nonce, expiry };
   }
 }

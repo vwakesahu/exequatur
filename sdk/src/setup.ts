@@ -45,6 +45,14 @@ export async function setup(): Promise<Context> {
   log.step(`Network: chainId ${chainId} via ${env.rpcUrl}`);
   log.step(`Deployer / delegator owner: ${ownerAccount.address}`);
 
+  // On an Anvil fork, top up the (fresh) tx-sending accounts so no real funds are needed. On real
+  // networks anvil_setBalance is unavailable — the run then relies on funded keys from .env.
+  await fundOnFork(pub, [
+    ownerAccount.address,
+    privateKeyToAccount(env.agentKey).address,
+    privateKeyToAccount(env.workerKey).address,
+  ]);
+
   // 1. Deploy (or reuse) MockUSDC + AttestationEnforcer.
   const usdc = await deploy(deployer, pub, "MockUSDC", env.mockUsdc);
   const attestationEnforcer = await deploy(deployer, pub, "AttestationEnforcer", env.attestationEnforcer);
@@ -93,6 +101,20 @@ export async function setup(): Promise<Context> {
     merchant: env.merchant,
     attacker: env.attacker,
   };
+}
+
+async function fundOnFork(pub: PublicClient, addresses: Address[]): Promise<void> {
+  try {
+    for (const address of addresses) {
+      await pub.request({
+        method: "anvil_setBalance" as never,
+        params: [address, "0x56BC75E2D63100000"] as never, // 100 ETH
+      });
+    }
+    log.step("Funded actors via anvil_setBalance (fork mode)");
+  } catch {
+    log.step("anvil_setBalance unavailable — assuming pre-funded keys (real network)");
+  }
 }
 
 async function deploy(

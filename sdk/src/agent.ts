@@ -1,5 +1,6 @@
 import type { Address, Hex } from "viem";
 import type { Delegation } from "@metamask/smart-accounts-kit";
+import { decodeRevertReason } from "@metamask/smart-accounts-kit/utils";
 import { erc20TransferAction, transferCallData } from "./actions.js";
 import { attachAttestation, leafHash, redeem } from "./delegation.js";
 import { log } from "./log.js";
@@ -42,17 +43,25 @@ export async function attemptPayment(params: {
     symbol: "mUSDC",
   });
 
+  // Every delegation in the chain that carries the firewall caveat must be attested (each hop is
+  // gated). Collect their on-chain hashes so the policy issues one attestation per hop.
+  const gatedHashes = chain
+    .filter((d) => d.caveats.some((c) => c.enforcer.toLowerCase() === ctx.attestationEnforcer.toLowerCase()))
+    .map((d) => leafHash(d));
+
   log.step(`${params.actor} proposes: pay ${action.description.amount} mUSDC to ${params.recipient}`);
-  const decision = await service.authorize(params.intent, action);
+  const decision = await service.authorizeChain(params.intent, action, gatedHashes);
   log.policy(`policy(${decision.brain}): ${decision.approved ? "APPROVE" : "DENY"} — ${decision.reason}`);
   if (decision.riskFlags.length > 0) log.policy(`risk flags: ${decision.riskFlags.join(", ")}`);
 
-  if (!decision.approved || !decision.attestation) {
+  if (!decision.approved || !decision.attestations) {
     return { executed: false, reason: decision.reason, brain: decision.brain, riskFlags: decision.riskFlags };
   }
 
-  const signedLeaf = attachAttestation(ctx, leaf, decision.attestation);
-  const redeemChain = [signedLeaf, ...chain.slice(1)];
+  const redeemChain = chain.map((d) => {
+    const att = decision.attestations![leafHash(d).toLowerCase() as `0x${string}`];
+    return att ? attachAttestation(ctx, d, att) : d;
+  });
 
   try {
     const txHash = await redeem({
@@ -70,12 +79,15 @@ export async function attemptPayment(params: {
       txHash,
     };
   } catch (err) {
+    const decoded = decodeRevertReason(err);
+    const revertError = decoded ? `${decoded.errorName}: ${decoded.message}` : err instanceof Error ? err.message : String(err);
+    log.note(`redemption reverted: ${revertError}`);
     return {
       executed: false,
       reason: decision.reason,
       brain: decision.brain,
       riskFlags: decision.riskFlags,
-      revertError: err instanceof Error ? err.message : String(err),
+      revertError,
     };
   }
 }

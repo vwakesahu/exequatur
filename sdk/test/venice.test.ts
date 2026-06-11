@@ -79,6 +79,40 @@ describe("makeVeniceBrain (mocked fetch)", () => {
     expect(verdict.riskFlags).toContain("policy-error");
   });
 
+  it("falls back to reasoning_content when content is empty (thinking models)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: "",
+                  reasoning_content: 'Considering the request... {"decision":"deny","reason":"off-intent","risk_flags":["intent_mismatch"]}',
+                },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+    const verdict = await makeVeniceBrain({ apiKey: "vk-test" }).evaluate("x", action());
+    expect(verdict.approved).toBe(false);
+    expect(verdict.riskFlags).toEqual(["intent_mismatch"]);
+  });
+
+  it("disables thinking and owns the system prompt", async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => reply({ decision: "approve", reason: "ok", risk_flags: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    await makeVeniceBrain({ apiKey: "vk-test" }).evaluate("x", action());
+    const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.venice_parameters.disable_thinking).toBe(true);
+    expect(body.venice_parameters.include_venice_system_prompt).toBe(false);
+    expect(body.max_completion_tokens).toBe(400);
+  });
+
   it("strips code fences some models add", async () => {
     vi.stubGlobal(
       "fetch",

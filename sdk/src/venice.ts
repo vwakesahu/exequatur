@@ -88,6 +88,15 @@ function stripFences(s: string): string {
     .trim();
 }
 
+/** Pulls the JSON object out of a response that may be wrapped in prose or reasoning text. */
+function extractJsonObject(s: string): string | null {
+  const t = stripFences(s);
+  if (t.startsWith("{")) return t;
+  const first = t.indexOf("{");
+  const last = t.lastIndexOf("}");
+  return first !== -1 && last > first ? t.slice(first, last + 1) : null;
+}
+
 const DENY_ON_ERROR = (reason: string): Verdict => ({ approved: false, reason, riskFlags: ["policy-error"] });
 
 /**
@@ -114,12 +123,19 @@ export function makeVeniceBrain(config: VeniceConfig): PolicyBrain {
           body: JSON.stringify({
             model,
             temperature: 0,
-            max_tokens: 200,
+            max_completion_tokens: 400,
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: buildUserMessage(intent, action) },
             ],
             response_format: VERDICT_SCHEMA,
+            // On reasoning models (e.g. qwen3) skip the chain-of-thought so the verdict JSON lands in
+            // `content` instead of being eaten by `reasoning_content`; own the system prompt fully.
+            venice_parameters: {
+              disable_thinking: true,
+              strip_thinking_response: true,
+              include_venice_system_prompt: false,
+            },
           }),
         });
 
@@ -128,13 +144,18 @@ export function makeVeniceBrain(config: VeniceConfig): PolicyBrain {
           return DENY_ON_ERROR(`Venice request failed: ${res.status} ${res.statusText} ${body}`.trim());
         }
 
-        const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-        const content = data.choices?.[0]?.message?.content;
-        if (!content) return DENY_ON_ERROR("Venice returned no content");
+        const data = (await res.json()) as {
+          choices?: { message?: { content?: string; reasoning_content?: string } }[];
+        };
+        const msg = data.choices?.[0]?.message;
+        // Prefer content; fall back to reasoning_content for thinking models that ignore disable_thinking.
+        const raw = (msg?.content && msg.content.trim()) || msg?.reasoning_content || "";
+        const json = extractJsonObject(raw);
+        if (!json) return DENY_ON_ERROR("Venice returned no JSON verdict");
 
         let parsed: { decision?: unknown; reason?: unknown; risk_flags?: unknown };
         try {
-          parsed = JSON.parse(stripFences(content));
+          parsed = JSON.parse(json);
         } catch {
           return DENY_ON_ERROR("Venice returned unparseable output");
         }

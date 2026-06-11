@@ -68,8 +68,10 @@ the on-chain enforcer must agree on (the most bug-prone seam — guarded by test
 - A2A redelegation: worker within narrowed cap succeeds, over narrowed cap reverts, absent-root chain reverts
 - cross-language action-hash parity (golden vector)
 
-**Layer 2 — SDK unit tests, 8 tests** — `cd sdk && pnpm test`
-- action-hash parity + field binding; policy service approve/deny + attestation recovery; Venice client (mocked transport)
+**Layer 2 — SDK unit tests, 11 tests** — `cd sdk && pnpm test`
+- action-hash parity + field binding; policy service approve/deny + attestation recovery; Venice
+  client (mocked transport): `decision` schema, fenced untrusted input, **fail-closed** on
+  error/unparseable/unknown-flag, fence stripping
 
 **Layer 2 — end-to-end on a Base Sepolia fork, 6 scenarios** — `cd sdk && ./run-e2e.sh`
 - happy path · firewall refuses off-intent transfer · **forged attestation rejected on-chain** ·
@@ -90,7 +92,11 @@ cd sdk && ./run-e2e.sh
 ```
 
 To gate payments with **real Venice** (M4) instead of the deterministic stub, set `VENICE_API_KEY`
-(and optionally `VENICE_MODEL`) in `.env` before step 3 — see [.env.example](.env.example).
+(and optionally `VENICE_MODEL`, default `qwen3-4b`) in `sdk/.env` before step 3 — see
+[.env.example](.env.example). The Venice verdict is load-bearing (it judges intent-match and flags
+prompt-injection in untrusted agent context) and **fails closed** — any API error, timeout, or
+malformed output denies, so no funds move. Note the account needs inference credits; without them
+the API returns `402` and every payment is (correctly) refused.
 
 ### Notes for graders
 

@@ -17,9 +17,17 @@ Build order from the plan, with current status. "Green" = automated checks pass.
 - **M1–M3 end-to-end (Layer 2):** `sdk/src/e2e.ts` — 6 scenarios against a Base Sepolia *fork*
   using the real MetaMask Smart Accounts Kit. Run `sdk/run-e2e.sh`.
 - **M4 (Venice):** `sdk/src/venice.ts` is the real client; `buildPolicyService` swaps it in
-  automatically when `VENICE_API_KEY` is set. Its request/parse logic is unit-tested offline with a
-  mocked transport (`sdk/test/venice.test.ts`). The deterministic stub (`makeRuleBrain`) is used
-  when no key is present so the matrix stays reproducible.
+  automatically when `VENICE_API_KEY` is set. The verdict is **load-bearing** — it judges whether
+  the action serves the user's natural-language intent and flags prompt-injection in the untrusted
+  agent context — and it **fails closed** (any error/timeout/malformed output → deny). Its
+  request/parse/validation logic is unit-tested offline with a mocked transport
+  (`sdk/test/venice.test.ts`, 6 tests). The deterministic stub (`makeRuleBrain`) is used when no key
+  is present so the matrix stays reproducible.
+
+  **Live validation:** against the real API, `qwen3-4b` + base URL + bearer auth all resolve (a
+  credit-less account returns `402 Payment Required`, not `401`), and the fail-closed path was
+  observed end-to-end — every errored verdict denied and **no funds moved**. A green *approving*
+  Venice run needs inference credits on the account (venice.ai/settings/api or VVV stake).
 
 ## Stop-loss (from the plan)
 

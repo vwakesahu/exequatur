@@ -5,7 +5,10 @@ import { http, type Hex, createPublicClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 
-loadDotenv({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../.env") });
+// Load sdk/.env first (takes precedence), then the repo-root .env. Both are gitignored.
+const here = dirname(fileURLToPath(import.meta.url));
+loadDotenv({ path: resolve(here, "../.env") });
+loadDotenv({ path: resolve(here, "../../.env") });
 
 /**
  * Generate FRESH keys per run by default, so the e2e runs against a Base Sepolia *fork*

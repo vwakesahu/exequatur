@@ -73,9 +73,21 @@ the on-chain enforcer must agree on (the most bug-prone seam — guarded by test
   client (mocked transport): `decision` schema, fenced untrusted input, **fail-closed** on
   error/unparseable/unknown-flag, fence stripping
 
-**Layer 2 — end-to-end on a Base Sepolia fork, 6 scenarios** — `cd sdk && ./run-e2e.sh`
+**Layer 2 — end-to-end, 6 scenarios** — fork (`cd sdk && ./run-e2e.sh`) or **real Base Sepolia**
 - happy path · firewall refuses off-intent transfer · **forged attestation rejected on-chain** ·
   A2A worker within scope · A2A over-cap reverts on-chain
+
+### Verified live on Base Sepolia (real Venice `qwen3-4b`)
+
+| What | On-chain |
+|---|---|
+| Scenario 1 — agent pays 25 mUSDC (Venice approved) | [tx `0x3f4e8c0b…`](https://sepolia.basescan.org/tx/0x3f4e8c0b160f4540d659a980710b1bcba7cd0e9a667d3dc5c39f0cb2397ebfdf) |
+| Scenario 3 — A2A worker pays 15 mUSDC in narrowed scope | [tx `0x0dfff0d3…`](https://sepolia.basescan.org/tx/0x0dfff0d31fac997930e0ae8f8833aaf51013a1e0b1330ef38adf016e9af3b95f) |
+| AttestationEnforcer (the firewall) | [`0xe73a…65f9`](https://sepolia.basescan.org/address/0xe73a140b9dc243a6885eeccf1da18c39908865f9) |
+| MockUSDC | [`0xe4e2…6026`](https://sepolia.basescan.org/address/0xe4e24711cb7fd5a08c6315b4d30baf35802c6026) |
+
+Scenario 2 (Venice flags `prompt_injection` + denies), 2b (forged attestation → `PolicySignatureMismatch`),
+and 3b (over-cap → `allowance-exceeded`) refuse off-chain or revert at estimation, so they move no funds.
 
 ## Quick start
 
@@ -89,6 +101,10 @@ cd sdk && pnpm install && pnpm test
 # 3. full end-to-end against a Base Sepolia fork (no secrets — fresh keys funded on the fork).
 #    Needs `anvil` (Foundry) + `pnpm`. Starts/stops the fork for you.
 cd sdk && ./run-e2e.sh
+
+# 3b. OR run against REAL Base Sepolia: put a funded key as PRIVATE_KEY in sdk/.env
+#     (it deploys the contracts, funds fresh agent/worker EOAs, and submits real txs), then:
+cd sdk && pnpm e2e
 ```
 
 To gate payments with **real Venice** (M4) instead of the deterministic stub, set `VENICE_API_KEY`

@@ -14,8 +14,12 @@ Build order from the plan, with current status. "Green" = automated checks pass.
 
 - **M1–M3 on-chain (Layer 1, offline):** `contracts/test/` — 16 Foundry tests against the real
   `DelegationManager` v1.3.0. Run `cd contracts && forge test`.
-- **M1–M3 end-to-end (Layer 2):** `sdk/src/e2e.ts` — 6 scenarios against a Base Sepolia *fork*
-  using the real MetaMask Smart Accounts Kit. Run `sdk/run-e2e.sh`.
+- **M1–M3 end-to-end (Layer 2):** `sdk/src/e2e.ts` — 6 scenarios using the real MetaMask Smart
+  Accounts Kit, against a Base Sepolia *fork* (`sdk/run-e2e.sh`) or **real Base Sepolia** (set a
+  funded `PRIVATE_KEY` in `sdk/.env`, then `pnpm e2e`). Verified live on Base Sepolia: scenario 1
+  [tx](https://sepolia.basescan.org/tx/0x3f4e8c0b160f4540d659a980710b1bcba7cd0e9a667d3dc5c39f0cb2397ebfdf)
+  and scenario 3 A2A
+  [tx](https://sepolia.basescan.org/tx/0x0dfff0d31fac997930e0ae8f8833aaf51013a1e0b1330ef38adf016e9af3b95f).
 - **M4 (Venice):** `sdk/src/venice.ts` is the real client; `buildPolicyService` swaps it in
   automatically when `VENICE_API_KEY` is set. The verdict is **load-bearing** — it judges whether
   the action serves the user's natural-language intent and flags prompt-injection in the untrusted

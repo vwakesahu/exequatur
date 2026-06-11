@@ -1,0 +1,22 @@
+# deps
+node_modules/
+sdk/node_modules/
+
+# env / secrets
+.env
+.env.local
+*.key
+
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/**/dry-run/
+contracts/lib/**/.git
+
+# ts build
+sdk/dist/
+*.tsbuildinfo
+
+# logs / os
+*.log
+.DS_Store

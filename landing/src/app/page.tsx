@@ -26,8 +26,8 @@ export default function Page() {
   return (
     <div className="relative max-w-full">
       <Grain />
-      {/* mb is ~half the footer height so the footer never fully reveals — keeps the black backdrop illusion */}
-      <div className="relative z-10 mb-[17rem] w-full rounded-b-[60px] pb-24 md:rounded-b-[120px]" style={MESH}>
+      {/* mb < footer height so the footer text reveals but the top stays behind the content (black backdrop) */}
+      <div className="relative z-10 mb-[24rem] w-full rounded-b-[60px] pb-24 md:rounded-b-[120px]" style={MESH}>
         <Navbar />
         <Hero />
         <Features />

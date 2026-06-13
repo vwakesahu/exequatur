@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import ZoomParallax from "@/components/ZoomParallax";
 import StatementMarquee from "@/components/StatementMarquee";
+import ScrollReveal from "@/components/ScrollReveal";
 import Demo from "@/components/Demo";
 import Mechanics from "@/components/Mechanics";
 import Cta from "@/components/Cta";
@@ -29,6 +30,7 @@ export default function Page() {
         <Hero />
         <Features />
         <StatementMarquee />
+        <ScrollReveal />
         <ZoomParallax />
         <Demo />
         <Mechanics />

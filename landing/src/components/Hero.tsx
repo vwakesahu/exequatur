@@ -158,14 +158,14 @@ export default function Hero() {
       <div className="landing w-full h-[400vh]">
         <div className="sticky top-0 left-0 h-screen w-full">
           <h1
-            className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 cursor-default px-2 text-center font-display text-3xl font-bold tracking-tighter text-white [text-shadow:0_2px_40px_rgba(0,0,0,0.55)] md:whitespace-nowrap md:text-6xl lg:text-8xl"
+            className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 cursor-default px-2 text-center font-display text-3xl font-bold tracking-tighter text-foreground md:whitespace-nowrap md:text-6xl lg:text-8xl"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >
             Scoped.Verified.Enforced
           </h1>
           <p
-            className="pointer-events-none absolute left-1/2 top-1/2 z-50 w-full max-w-full -translate-x-1/2 -translate-y-1/2 px-4 text-center text-sm leading-loose tracking-tight text-white/85 opacity-0 [text-shadow:0_2px_30px_rgba(0,0,0,0.6)] md:max-w-xl md:text-lg lg:text-xl"
+            className="pointer-events-none absolute left-1/2 top-1/2 z-50 w-full max-w-full -translate-x-1/2 -translate-y-1/2 px-4 text-center text-sm font-medium leading-loose tracking-tight text-neutral-800 opacity-0 md:max-w-xl md:text-lg lg:text-xl"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >

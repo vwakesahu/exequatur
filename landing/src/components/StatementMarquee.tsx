@@ -16,8 +16,8 @@ function Row({ x, outlined }: { x: MotionValue<string>; outlined?: boolean }) {
                 className="px-6 font-display text-[8vw] font-semibold leading-none md:text-[6vw]"
                 style={
                   outlined
-                    ? { color: "transparent", WebkitTextStroke: "1px rgba(129,140,248,0.45)" }
-                    : { color: "white" }
+                    ? { color: "transparent", WebkitTextStroke: "1.5px rgba(99,102,241,0.55)" }
+                    : { color: "hsl(var(--foreground))" }
                 }
               >
                 {phrase}

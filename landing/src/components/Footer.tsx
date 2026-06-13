@@ -9,11 +9,7 @@ export default function Footer() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-8 border-b border-white/10 pb-8 md:flex-row md:items-start md:justify-between">
             <div className="max-w-sm">
-              <div className="flex items-center gap-2.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.svg" alt="exequatur" width={28} height={28} className="h-7 w-7" />
-                <span className="font-display text-lg font-bold text-white">exequatur</span>
-              </div>
+              <span className="font-display text-lg font-medium tracking-tight text-white">exequatur</span>
               <p className="mt-4 text-sm leading-relaxed text-white/50">
                 A firewall for autonomous payment agents. Scoped delegation, a Venice policy check,
                 and an on-chain enforcer no agent can talk its way past.

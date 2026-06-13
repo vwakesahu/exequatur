@@ -50,9 +50,8 @@ export default function Features() {
             <div className="hidden lg:block" />
             <div className="rounded-3xl p-8">
               <div className="relative flex h-full items-center justify-center">
-                <div className="absolute h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.svg" alt="exequatur mark" width={176} height={176} className="relative h-44 w-44" />
+                <div className="absolute h-44 w-44 rounded-full bg-indigo-500/25 blur-3xl" />
+                <div className="relative h-36 w-36 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-700 shadow-[0_25px_70px_-15px_rgba(79,70,229,0.65)]" />
               </div>
             </div>
             <div className="rounded-3xl bg-gradient-to-b from-indigo-400 to-indigo-600 p-8">

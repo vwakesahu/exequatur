@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Geist } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -10,7 +10,6 @@ const display = Bricolage_Grotesque({
 });
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
-const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
   title: "exequatur",
@@ -27,7 +26,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${display.variable} ${sans.variable} ${mono.variable} antialiased`}>
+      <body className={`${display.variable} ${sans.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" disableTransitionOnChange>
           {children}
         </ThemeProvider>

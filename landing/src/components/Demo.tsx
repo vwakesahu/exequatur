@@ -12,7 +12,7 @@ export default function Demo() {
   return (
     <section className="mx-auto max-w-5xl px-4 py-24">
       <div className="mb-10 text-center md:mb-14">
-        <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-indigo-400">Demo</p>
+        <p className="mb-4 text-[13px] font-semibold uppercase tracking-widest text-indigo-400">Demo</p>
         <h2 className="font-display text-4xl font-semibold tracking-tight md:text-6xl">
           <span className="text-foreground">Watch it refuse </span>
           <span className="bg-gradient-to-b from-indigo-300 to-indigo-500 bg-clip-text text-transparent">

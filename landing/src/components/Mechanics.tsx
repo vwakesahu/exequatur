@@ -52,7 +52,7 @@ function Card({ i, total, data, progress }: { i: number; total: number; data: Me
       >
         <div className="flex flex-1 flex-col justify-between p-8 md:p-12">
           <div>
-            <p className="mb-5 font-mono text-xs uppercase tracking-[0.2em] text-indigo-500">{data.tag}</p>
+            <p className="mb-5 text-[13px] font-semibold uppercase tracking-widest text-indigo-500">{data.tag}</p>
             <h3 className="font-display text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-4xl">
               {data.title}
             </h3>
@@ -78,7 +78,7 @@ export default function Mechanics() {
   return (
     <section id="tests" className="scroll-mt-24">
       <div className="mx-auto max-w-7xl px-4 pt-24 text-center">
-        <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-indigo-500">Under the hood</p>
+        <p className="mb-4 text-[13px] font-semibold uppercase tracking-widest text-indigo-500">Under the hood</p>
         <h2 className="font-display text-4xl font-semibold tracking-tight md:text-6xl">
           <span className="text-foreground">Four things stand between</span>
           <br />

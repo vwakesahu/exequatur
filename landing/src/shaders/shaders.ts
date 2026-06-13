@@ -84,11 +84,11 @@ varying float vElevation;
 uniform float uColorChange;
 
 void main() {
-    // Indigo / electric violet palette.
-    vec4 c1 = vec4(0.31, 0.22, 0.62, 0.92);
-    vec4 c2 = vec4(0.42, 0.33, 0.78, 0.92);
-    vec4 c3 = vec4(0.52, 0.43, 0.90, 0.92);
-    vec4 c4 = vec4(0.66, 0.58, 0.98, 0.92);
+    // Matches the site theme: indigo-600 -> indigo-500 -> violet-500 -> violet-400.
+    vec4 c1 = vec4(0.31, 0.27, 0.90, 0.92);
+    vec4 c2 = vec4(0.39, 0.40, 0.95, 0.92);
+    vec4 c3 = vec4(0.55, 0.36, 0.96, 0.92);
+    vec4 c4 = vec4(0.66, 0.55, 0.98, 0.92);
 
     float v = smoothstep(-0.15, 0.15, vElevation * 3.5);
     vec4 colorPrimary = mix(c1, c2, v);

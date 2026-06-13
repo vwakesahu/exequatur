@@ -33,8 +33,8 @@ export default function Page() {
         <Features />
         {/* <StatementMarquee /> */}
         <ScrollReveal />
-        <ZoomParallax />
         <Demo />
+        <ZoomParallax />
         <Mechanics />
         {/* <Playground /> */}
         {/* <Cta /> */}

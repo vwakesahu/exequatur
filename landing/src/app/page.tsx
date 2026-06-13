@@ -6,6 +6,7 @@ import StatementMarquee from "@/components/StatementMarquee";
 import ScrollReveal from "@/components/ScrollReveal";
 import Demo from "@/components/Demo";
 import Mechanics from "@/components/Mechanics";
+import ThreatModel from "@/components/ThreatModel";
 import Cta from "@/components/Cta";
 import Footer from "@/components/Footer";
 import Grain from "@/components/Grain";
@@ -34,6 +35,7 @@ export default function Page() {
         <ZoomParallax />
         <Demo />
         <Mechanics />
+        <ThreatModel />
         <Cta />
       </div>
       <Footer />

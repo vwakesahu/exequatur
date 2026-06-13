@@ -44,6 +44,7 @@ I'd rather state the boundary honestly than claim it stops everything.
 contracts/   Foundry. MockUSDC + the AttestationEnforcer caveat + tests. Runs offline.
 sdk/         TypeScript. The real create/sign/redeem flow on the MetaMask Smart Accounts Kit,
              the policy service, the Venice client, and the end-to-end runner.
+landing/     Next.js landing page (TypeScript, three.js shader hero). See landing/README.md.
 ```
 
 The contracts use MetaMask's audited Delegation Framework v1.3.0 (installed via

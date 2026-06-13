@@ -33,9 +33,9 @@ export default function Page() {
         <Features />
         {/* <StatementMarquee /> */}
         <ScrollReveal />
-        <Demo />
         <ZoomParallax />
         <Mechanics />
+        <Demo />
         {/* <Playground /> */}
         {/* <Cta /> */}
       </div>

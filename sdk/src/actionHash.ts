@@ -16,7 +16,7 @@ import { type Address, type Hex, encodeAbiParameters, keccak256 } from "viem";
  *     uint256 expiry
  *   ))
  *
- * This is the single most bug-prone seam in the system — if the off-chain and on-chain encodings
+ * This is the single most bug-prone seam in the system - if the off-chain and on-chain encodings
  * drift, every signature check fails for confusing reasons. It is locked by a golden-vector test in
  * both languages (sdk: actionHash.test.ts, contracts: ActionHashParity.t.sol).
  */

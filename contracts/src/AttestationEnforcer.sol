@@ -12,20 +12,20 @@ import { ModeCode } from "@metamask/delegation-framework/src/utils/Types.sol";
  * @notice The on-chain half of the Delegation Firewall.
  *
  *         A redemption may only proceed if it carries a *fresh* ECDSA signature ("attestation")
- *         from a trusted off-chain policy service. The policy service decides — per action —
+ *         from a trusted off-chain policy service. The policy service decides - per action -
  *         whether the proposed execution matches the user's intent (using Venice) before it will
  *         sign. This makes the off-chain decision **unbypassable**: even an action that is within
  *         the spend cap and "looks" legal reverts on-chain if no valid attestation accompanies it.
  *
  *         Static config (`terms`, set by the delegator when the delegation is created):
- *           - policySigner address (20 bytes) — whose signature is required.
+ *           - policySigner address (20 bytes) - whose signature is required.
  *
  *         Dynamic input (`args`, supplied by the redeemer at redemption time):
  *           - abi.encode(uint256 nonce, uint256 expiry, bytes signature)
  *
  *         The signed digest binds the attestation to the *exact* execution so it cannot be
  *         lifted onto a different action (see {computeActionHash}). Replay is prevented by a
- *         single-use map keyed by (delegationManager, delegationHash, nonce) — never by nonce
+ *         single-use map keyed by (delegationManager, delegationHash, nonce) - never by nonce
  *         alone, since enforcers are shared singletons across many delegations.
  */
 contract AttestationEnforcer is CaveatEnforcer {
@@ -92,7 +92,7 @@ contract AttestationEnforcer is CaveatEnforcer {
      * @notice The canonical action digest the policy service must sign.
      * @dev MUST stay byte-for-byte identical to the off-chain definition in sdk/src/actionHash.ts.
      *      Binds chain, delegation, target, value and full calldata, plus the attestation's
-     *      nonce + expiry — so a signature issued for one action can never be reused for another.
+     *      nonce + expiry - so a signature issued for one action can never be reused for another.
      */
     function computeActionHash(
         bytes32 _delegationHash,

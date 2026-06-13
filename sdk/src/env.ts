@@ -12,7 +12,7 @@ loadDotenv({ path: resolve(here, "../../.env") });
 
 /**
  * Generate FRESH keys per run by default, so the e2e runs against a Base Sepolia *fork*
- * (`anvil --fork-url https://sepolia.base.org`) with no secrets — setup funds them via
+ * (`anvil --fork-url https://sepolia.base.org`) with no secrets - setup funds them via
  * anvil_setBalance. We deliberately avoid the well-known Anvil dev keys: those addresses carry
  * leftover EIP-7702 delegations on real Base Sepolia, which makes the DelegationManager treat an
  * EOA *redelegator* as a contract (ERC-1271) and breaks A2A. Override any key via .env to run
@@ -47,7 +47,7 @@ export const env = {
   policyKey: key("POLICY_PRIVATE_KEY"),
   merchant: privateKeyToAccount(key("MERCHANT_PRIVATE_KEY")).address,
   attacker: privateKeyToAccount(key("ATTACKER_PRIVATE_KEY")).address,
-  // pre-deployed addresses (optional — setup deploys fresh ones if empty)
+  // pre-deployed addresses (optional - setup deploys fresh ones if empty)
   mockUsdc: process.env.MOCK_USDC_ADDRESS as Hex | undefined,
   attestationEnforcer: process.env.ATTESTATION_ENFORCER_ADDRESS as Hex | undefined,
   // Venice (M4): if a key is present, the real brain is used; otherwise the deterministic stub

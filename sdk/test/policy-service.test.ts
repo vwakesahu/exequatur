@@ -5,7 +5,7 @@ import { computeActionHash } from "../src/actionHash.js";
 import { erc20TransferAction } from "../src/actions.js";
 import { PolicyService, makeRuleBrain } from "../src/policy-service.js";
 
-// anvil dev key #0 — test only
+// anvil dev key #0 - test only
 const POLICY_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 const CHAIN_ID = 84532n;
 const TOKEN = getAddress("0x036CbD53842c5426634e7929541eC2318f3dCF7e");

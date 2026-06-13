@@ -23,7 +23,7 @@ import { MockDeleGator } from "./mocks/MockDeleGator.sol";
  * @notice Layer 1 end-to-end: drives the REAL {DelegationManager.redeemDelegations} with both the
  *         built-in {ERC20TransferAmountEnforcer} (hard spend cap) and our {AttestationEnforcer}
  *         (firewall). Proves the firewall in the actual redemption flow, plus the A2A redelegation
- *         chain — all offline, EOA delegates, no bundler.
+ *         chain - all offline, EOA delegates, no bundler.
  */
 contract IntegrationTest is Test {
     DelegationManager internal dm;

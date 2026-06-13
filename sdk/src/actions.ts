@@ -34,7 +34,7 @@ export function erc20TransferAction(params: {
   };
 }
 
-/** The transfer calldata for an action — what gets executed if the firewall approves. */
+/** The transfer calldata for an action - what gets executed if the firewall approves. */
 export function transferCallData(recipient: Address, amount: bigint): Hex {
   return encodeFunctionData({ abi: erc20Abi, functionName: "transfer", args: [recipient, amount] });
 }

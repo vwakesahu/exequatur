@@ -6,7 +6,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 /**
  * @title MockUSDC
  * @notice A freely-mintable 6-decimal ERC20 used so demo amounts are fully controlled
- *         (no faucet dependency). Not for production — anyone can mint.
+ *         (no faucet dependency). Not for production - anyone can mint.
  */
 contract MockUSDC is ERC20 {
     constructor() ERC20("Mock USD Coin", "mUSDC") { }

@@ -10,7 +10,7 @@ import { AttestationEnforcer } from "../src/AttestationEnforcer.sol";
  * @title ActionHashParityTest
  * @notice Locks the canonical action hash to a golden vector shared verbatim with the off-chain
  *         definition (sdk/src/actionHash.ts, asserted in sdk/test/actionHash.test.ts). If either
- *         side's encoding drifts, one of these two tests breaks — surfacing the bug immediately
+ *         side's encoding drifts, one of these two tests breaks - surfacing the bug immediately
  *         instead of as a confusing signature-recovery failure at redemption time.
  */
 contract ActionHashParityTest is Test {

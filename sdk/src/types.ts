@@ -18,7 +18,7 @@ export interface ProposedAction {
   };
   /**
    * Untrusted context the agent observed when it formed this action (a product page, tool output,
-   * another agent's message). May be attacker-controlled — the policy treats it as data, never as
+   * another agent's message). May be attacker-controlled - the policy treats it as data, never as
    * instructions, and uses it to catch prompt-injection / social-engineering.
    */
   context?: string;
@@ -31,7 +31,7 @@ export interface Verdict {
   riskFlags: string[];
 }
 
-/** Pluggable decision engine — deterministic stub for tests, real Venice for the demo. */
+/** Pluggable decision engine - deterministic stub for tests, real Venice for the demo. */
 export interface PolicyBrain {
   readonly name: string;
   evaluate(intent: string, action: ProposedAction): Promise<Verdict>;

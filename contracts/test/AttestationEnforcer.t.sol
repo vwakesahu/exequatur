@@ -13,7 +13,7 @@ import { MockUSDC } from "../src/MockUSDC.sol";
  * @title AttestationEnforcerTest
  * @notice The enforcer unit matrix (Layer 1). Drives {AttestationEnforcer.beforeHook} exactly as
  *         the DelegationManager would (msg.sender = the manager), proving each security property in
- *         isolation. Fully offline — no SDK, no network, no bundler.
+ *         isolation. Fully offline - no SDK, no network, no bundler.
  */
 contract AttestationEnforcerTest is Test {
     AttestationEnforcer internal enforcer;
@@ -134,7 +134,7 @@ contract AttestationEnforcerTest is Test {
     }
 
     function test_replayKeyedPerDelegation() public {
-        // Same nonce reused under two *different* delegations must both succeed —
+        // Same nonce reused under two *different* delegations must both succeed -
         // proves the used-map is keyed by delegationHash, not nonce alone.
         bytes32 dA = keccak256("delegation-A");
         bytes32 dB = keccak256("delegation-B");

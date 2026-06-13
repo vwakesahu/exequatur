@@ -83,7 +83,7 @@ export function attachAttestation(ctx: Context, delegation: Delegation, attestat
 }
 
 /**
- * Redeem a delegation chain as an EOA delegate — a plain transaction to the DelegationManager via
+ * Redeem a delegation chain as an EOA delegate - a plain transaction to the DelegationManager via
  * the ERC-7710 wallet action. No bundler. `chain` is ordered leaf -> root.
  */
 export async function redeem(params: {
@@ -108,7 +108,7 @@ export async function redeem(params: {
     delegationManager: params.ctx.environment.DelegationManager,
   });
   const receipt = await params.ctx.pub.waitForTransactionReceipt({ hash });
-  // A reverted tx still returns a receipt (viem does not throw) — treat it as a failed redemption.
+  // A reverted tx still returns a receipt (viem does not throw) - treat it as a failed redemption.
   if (receipt.status !== "success") throw new Error(`redemption tx reverted on-chain (${hash})`);
   return receipt;
 }

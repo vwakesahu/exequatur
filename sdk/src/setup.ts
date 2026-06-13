@@ -104,7 +104,7 @@ export async function setup(): Promise<Context> {
   };
 }
 
-const GAS_TOPUP = parseEther("0.004"); // per actor — well under any reasonable cap
+const GAS_TOPUP = parseEther("0.004"); // per actor - well under any reasonable cap
 const GAS_MIN = parseEther("0.0015");
 
 async function fundActors(
@@ -120,7 +120,7 @@ async function fundActors(
     log.step("Funded actors via anvil_setBalance (fork mode)");
     return;
   } catch {
-    /* real network — anvil_setBalance unavailable */
+    /* real network - anvil_setBalance unavailable */
   }
 
   // Real network: owner is pre-funded; top up the fresh agent/worker EOAs for gas.

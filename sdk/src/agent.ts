@@ -87,7 +87,7 @@ export async function attemptPayment(params: {
 
   log.step(`${params.actor} proposes: pay ${action.description.amount} mUSDC to ${params.recipient}`);
   const decision = await service.authorizeChain(params.intent, action, gatedHashes);
-  log.policy(`policy(${decision.brain}): ${decision.approved ? "APPROVE" : "DENY"} — ${decision.reason}`);
+  log.policy(`policy(${decision.brain}): ${decision.approved ? "APPROVE" : "DENY"} - ${decision.reason}`);
   if (decision.riskFlags.length > 0) log.policy(`risk flags: ${decision.riskFlags.join(", ")}`);
 
   if (!decision.approved || !decision.attestations) {

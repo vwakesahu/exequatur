@@ -5,7 +5,7 @@ import type { Attestation, AuthorizeResult, PolicyBrain, ProposedAction, Verdict
 
 /**
  * A deterministic, offline policy brain used by the automated test matrix (the "stubbed Venice").
- * Encodes a simple but real rule — "only pay approved recipients, never above the cap" — so tests
+ * Encodes a simple but real rule - "only pay approved recipients, never above the cap" - so tests
  * are reproducible and need no network. The real demo swaps in {makeVeniceBrain}.
  */
 export function makeRuleBrain(rules: { allowRecipients: Address[]; maxAmount: bigint; decimals?: number }): PolicyBrain {
@@ -56,7 +56,7 @@ export interface PolicyServiceOptions {
 
 /**
  * The off-chain firewall. Computes the canonical action hash, asks the policy brain for a verdict,
- * and — only on approval — returns an ECDSA attestation signed by the policy key. The matching
+ * and - only on approval - returns an ECDSA attestation signed by the policy key. The matching
  * on-chain {AttestationEnforcer} will reject any redemption lacking this fresh signature.
  */
 export class PolicyService {
@@ -102,7 +102,7 @@ export class PolicyService {
 
   /**
    * Authorize an action for a whole delegation chain (A2A): the brain runs ONCE on the action, and
-   * — only on approval — we issue a fresh attestation bound to EACH delegation hash that gates the
+   * - only on approval - we issue a fresh attestation bound to EACH delegation hash that gates the
    * action (every hop with the firewall caveat). Returns a map keyed by lowercased delegation hash.
    */
   async authorizeChain(

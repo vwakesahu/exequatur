@@ -1,4 +1,4 @@
-/* Minimal labeled stdout — keeps the e2e output readable and demo-friendly. */
+/* Minimal labeled stdout - keeps the e2e output readable and demo-friendly. */
 const c = {
   dim: (s: string) => `\x1b[2m${s}\x1b[0m`,
   cyan: (s: string) => `\x1b[36m${s}\x1b[0m`,
@@ -18,7 +18,7 @@ export const log = {
   link: (msg: string) => console.log(`    ${c.dim(msg)}`),
 };
 
-/** Basescan (Base Sepolia) explorer links — only meaningful on the real network. */
+/** Basescan (Base Sepolia) explorer links - only meaningful on the real network. */
 export const explorer = {
   tx: (hash: string) => `https://sepolia.basescan.org/tx/${hash}`,
   address: (addr: string) => `https://sepolia.basescan.org/address/${addr}`,

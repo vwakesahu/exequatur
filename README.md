@@ -1,126 +1,153 @@
-# Delegation-Firewall Agent
+# Delegation Firewall Agent
 
-An on-chain **firewall for autonomous agents**, built on the MetaMask Smart Accounts Kit
-(formerly Delegation Toolkit). A user delegates a *scoped* spending permission to an agent;
-every redemption must additionally carry a **fresh signed attestation** from an off-chain
-policy service that checks the action against the user's intent (using Venice). The check is
-made **unbypassable** by a custom on-chain caveat enforcer.
+This is a firewall for AI payment agents.
 
-> Status: backend + E2E (no frontend). Tracks targeted: **A2A coordination**, **Best Agent**,
-> **Best use of Venice**.
+The idea: you give an agent a scoped permission to spend your money (a MetaMask delegation with a
+spend cap). But a cap alone doesn't stop a hijacked or prompt-injected agent from paying the wrong
+person an amount that's technically "within the cap". So on top of the cap, every payment also has
+to carry a fresh signature from a policy service that actually looks at the action and decides if it
+matches what you asked for. That policy check runs through Venice. A custom caveat enforces the
+signature on-chain, so the agent can't skip it.
 
-## The idea in one diagram
+If the agent goes rogue, the policy service just won't sign, and the on-chain redemption reverts.
+Even if the agent forges its own signature, the enforcer checks it against the policy key baked into
+the delegation and rejects it.
 
-```
-intent ─▶ agent (EOA delegate) ─▶ policy-service ──(Venice verdict)──▶ attestation (ECDSA sig)
-                   │                                                          │
-                   └────────── redeemDelegations(execution, attestation) ─────┘
-                                            │
-                                   DelegationManager
-                                            │  runs every caveat:
-                                   ┌────────┴─────────┐
-                          Erc20TransferAmount   AttestationEnforcer  ◀── the firewall
-                          (hard spend cap)      (fresh policy sig req'd)
-                                            │
-                                   delegator smart account moves USDC ─▶ merchant
-```
+Status: backend + end-to-end, no frontend. Built for the A2A coordination, Best Agent, and Best use
+of Venice tracks.
 
-If the agent is hijacked / prompt-injected and tries something outside intent, the policy
-service refuses to sign — and with no valid attestation the redemption **reverts on-chain**,
-even though it is within the spend cap and "looks" legal.
-
-## Threat model (bounded on purpose)
-
-**Protected against**
-- a hijacked / prompt-injected agent acting outside the user's intent or granted scope
-- a malicious or low-reputation sub-agent (redelegate)
-- replay of a stale approval (single-use attestations, keyed per delegation)
-
-**Not protected against**
-- the user signing a bad root delegation themselves
-- compromise of the policy service signing key
-- a malicious merchant / fulfiller
-
-## How it's built
-
-- **On-chain (Foundry):** [`MockUSDC`](contracts/src/MockUSDC.sol), the custom
-  [`AttestationEnforcer`](contracts/src/AttestationEnforcer.sol) caveat, and the audited MetaMask
-  **Delegation Framework v1.3.0** (installed, not written).
-- **Off-chain (TypeScript):** the real **MetaMask Smart Accounts Kit** (`@metamask/smart-accounts-kit`,
-  the package formerly called the Delegation Toolkit), a [policy service](sdk/src/policy-service.ts)
-  that gates every action, and a [Venice client](sdk/src/venice.ts) for the verdict.
+## How it works
 
 ```
-contracts/   Foundry — MockUSDC + AttestationEnforcer + tests (Layer 1, runs offline)
-sdk/         TypeScript — create→sign→redeem via the Smart Accounts Kit, policy service, Venice, e2e
+  intent + the action the agent wants to do
+                  |
+                  v
+          agent (an EOA)  --- asks --->  policy service  --->  Venice
+                  |                            |          "does this match the intent?
+                  |                            |           is the context trying to trick me?"
+                  |                     if approved, sign an
+                  |                     ECDSA attestation
+                  |  <---- attestation -------+
+                  v
+        redeemDelegations(action, attestation)
+                  |
+                  v
+          DelegationManager  runs the caveats on the delegation:
+                  |             - ERC20 spend cap   (a built-in enforcer)
+                  |             - AttestationEnforcer (needs the fresh policy signature)  <- the firewall
+                  v
+        delegator smart account sends the USDC to the merchant
 ```
 
-The canonical action hash — the most bug-prone seam — is defined identically off-chain in
-[sdk/src/actionHash.ts](sdk/src/actionHash.ts) and on-chain in
-[AttestationEnforcer.computeActionHash](contracts/src/AttestationEnforcer.sol), and locked by a
-shared golden-vector test in both languages
-([contracts/test/ActionHashParity.t.sol](contracts/test/ActionHashParity.t.sol),
-[sdk/test/actionHash.test.ts](sdk/test/actionHash.test.ts)) so neither side can drift.
+The attestation is bound to the exact action (chain, delegation, target, amount, calldata, a nonce,
+and an expiry), so a signature for one payment can't be reused for another. It's single use, keyed
+per delegation, so replay doesn't work.
 
-## What's verified
+## What it protects against (and what it doesn't)
 
-**Layer 1 — Foundry (offline, no creds), 16 tests** — `cd contracts && forge test`
-- enforcer unit matrix: valid / missing / wrong-signer / expired / replayed / tampered / per-delegation keying / bad terms
-- real `DelegationManager.redeemDelegations` integration: happy path, over-cap revert, within-cap-but-unapproved revert
-- A2A redelegation: worker within narrowed cap succeeds, over narrowed cap reverts, absent-root chain reverts
-- cross-language action-hash parity (golden vector)
+Protects against:
+- an agent that gets hijacked or prompt-injected and tries to pay outside your intent or scope
+- a malicious sub-agent you redelegated to
+- replaying an old approval
 
-**Layer 2 — SDK unit tests, 11 tests** — `cd sdk && pnpm test`
-- action-hash parity + field binding; policy service approve/deny + attestation recovery; Venice
-  client (mocked transport): `decision` schema, fenced untrusted input, **fail-closed** on
-  error/unparseable/unknown-flag, fence stripping
+Does not protect against:
+- you signing a bad root delegation in the first place
+- the policy service's signing key getting compromised
+- the merchant themselves being malicious
 
-**Layer 2 — end-to-end, 6 scenarios** — fork (`cd sdk && ./run-e2e.sh`) or **real Base Sepolia**
-- happy path · firewall refuses off-intent transfer · **forged attestation rejected on-chain** ·
-  A2A worker within scope · A2A over-cap reverts on-chain
+I'd rather state the boundary honestly than claim it stops everything.
 
-### Verified live on Base Sepolia (real Venice `qwen3-4b`)
+## Layout
 
-| What | On-chain |
+```
+contracts/   Foundry. MockUSDC + the AttestationEnforcer caveat + tests. Runs offline.
+sdk/         TypeScript. The real create/sign/redeem flow on the MetaMask Smart Accounts Kit,
+             the policy service, the Venice client, and the end-to-end runner.
+```
+
+The contracts use MetaMask's audited Delegation Framework v1.3.0 (installed via
+`contracts/install-deps.sh`, not vendored). The SDK uses `@metamask/smart-accounts-kit`, which is the
+package that used to be called the Delegation Toolkit.
+
+The one thing that has to match exactly between the two sides is the action hash that the policy
+signs and the enforcer rebuilds. If those ever drift, every signature check fails for confusing
+reasons, so it's defined identically in [sdk/src/actionHash.ts](sdk/src/actionHash.ts) and
+[AttestationEnforcer.computeActionHash](contracts/src/AttestationEnforcer.sol), and pinned by a
+golden-vector test on both sides
+([contracts/test/ActionHashParity.t.sol](contracts/test/ActionHashParity.t.sol) and
+[sdk/test/actionHash.test.ts](sdk/test/actionHash.test.ts)).
+
+## Tests
+
+Foundry, 16 tests, fully offline (`cd contracts && forge test`):
+- the enforcer on its own: valid attestation, missing, wrong signer, expired, replayed, tampered
+  action, per-delegation replay keying, bad terms length
+- the real `DelegationManager.redeemDelegations` flow: happy path, over the cap, and within the cap
+  but not approved by the policy
+- A2A redelegation: worker within the narrowed cap works, over it reverts, and a broken chain reverts
+- the action-hash golden vector
+
+SDK unit tests, 13 tests, offline (`cd sdk && pnpm test`):
+- the action hash and that it changes when any bound field changes
+- the policy service approving/denying and the attestation recovering to the right signer
+- the Venice client against a mocked transport: the request shape, parsing, failing closed on
+  errors/timeouts/garbage output, and pulling the verdict out of a reasoning model's response
+
+End-to-end, 6 scenarios, against a Base Sepolia fork or real Base Sepolia:
+- happy path, the firewall refusing an off-intent payment, a forged attestation getting rejected
+  on-chain, the A2A worker paying within its narrower scope, and the worker getting reverted when it
+  goes over that scope
+
+### Run live on Base Sepolia (real Venice, qwen3-4b)
+
+I ran the whole thing on real Base Sepolia with Venice actually making the call:
+
+| | on-chain |
 |---|---|
-| Scenario 1 — agent pays 25 mUSDC (Venice approved) | [tx `0x3f4e8c0b…`](https://sepolia.basescan.org/tx/0x3f4e8c0b160f4540d659a980710b1bcba7cd0e9a667d3dc5c39f0cb2397ebfdf) |
-| Scenario 3 — A2A worker pays 15 mUSDC in narrowed scope | [tx `0x0dfff0d3…`](https://sepolia.basescan.org/tx/0x0dfff0d31fac997930e0ae8f8833aaf51013a1e0b1330ef38adf016e9af3b95f) |
-| AttestationEnforcer (the firewall) | [`0xe73a…65f9`](https://sepolia.basescan.org/address/0xe73a140b9dc243a6885eeccf1da18c39908865f9) |
-| MockUSDC | [`0xe4e2…6026`](https://sepolia.basescan.org/address/0xe4e24711cb7fd5a08c6315b4d30baf35802c6026) |
+| agent pays 25 mUSDC, Venice approved | [tx 0x3f4e8c0b](https://sepolia.basescan.org/tx/0x3f4e8c0b160f4540d659a980710b1bcba7cd0e9a667d3dc5c39f0cb2397ebfdf) |
+| A2A worker pays 15 mUSDC in its narrowed scope | [tx 0x0dfff0d3](https://sepolia.basescan.org/tx/0x0dfff0d31fac997930e0ae8f8833aaf51013a1e0b1330ef38adf016e9af3b95f) |
+| AttestationEnforcer (the firewall caveat) | [0xe73a...65f9](https://sepolia.basescan.org/address/0xe73a140b9dc243a6885eeccf1da18c39908865f9) |
+| MockUSDC | [0xe4e2...6026](https://sepolia.basescan.org/address/0xe4e24711cb7fd5a08c6315b4d30baf35802c6026) |
 
-Scenario 2 (Venice flags `prompt_injection` + denies), 2b (forged attestation → `PolicySignatureMismatch`),
-and 3b (over-cap → `allowance-exceeded`) refuse off-chain or revert at estimation, so they move no funds.
+On the attack scenario, Venice denied it on its own and flagged `prompt_injection`,
+`intent_mismatch`, `amount_exceeds_intent`, and `unknown_recipient`. The forged-attestation and
+over-cap scenarios revert before any money moves, so there's nothing to see on the explorer for those
+beyond the failure.
 
-## Quick start
+## Running it
 
 ```bash
-# 1. on-chain security proofs (offline, no creds)
+# 1. the contract tests (offline, no keys needed)
 cd contracts && ./install-deps.sh && forge test -vvv
 
-# 2. SDK unit tests (offline)
+# 2. the SDK unit tests (offline)
 cd sdk && pnpm install && pnpm test
 
-# 3. full end-to-end against a Base Sepolia fork (no secrets — fresh keys funded on the fork).
-#    Needs `anvil` (Foundry) + `pnpm`. Starts/stops the fork for you.
+# 3. the full end-to-end against a Base Sepolia fork.
+#    needs anvil (Foundry) and pnpm. it starts and stops the fork for you,
+#    generates fresh keys, and funds them on the fork, so no secrets are needed.
 cd sdk && ./run-e2e.sh
 
-# 3b. OR run against REAL Base Sepolia: put a funded key as PRIVATE_KEY in sdk/.env
-#     (it deploys the contracts, funds fresh agent/worker EOAs, and submits real txs), then:
+# 4. or run it against real Base Sepolia: drop a funded key into sdk/.env as PRIVATE_KEY.
+#    it deploys the contracts, sends a little gas to fresh agent/worker accounts, and submits
+#    real transactions.
 cd sdk && pnpm e2e
 ```
 
-To gate payments with **real Venice** (M4) instead of the deterministic stub, set `VENICE_API_KEY`
-(and optionally `VENICE_MODEL`, default `qwen3-4b`) in `sdk/.env` before step 3 — see
-[.env.example](.env.example). The Venice verdict is load-bearing (it judges intent-match and flags
-prompt-injection in untrusted agent context) and **fails closed** — any API error, timeout, or
-malformed output denies, so no funds move. Note the account needs inference credits; without them
-the API returns `402` and every payment is (correctly) refused.
+By default the policy uses a deterministic stub so the tests are reproducible and don't need a
+network. To use real Venice, put `VENICE_API_KEY` in `sdk/.env` (and optionally `VENICE_MODEL`,
+default `qwen3-4b`). See [.env.example](.env.example). The Venice call is the real decision: it reads
+your plain-language intent plus the proposed action and the untrusted context the agent saw, and it
+fails closed, so an error, a timeout, or garbage output all mean "deny" and nothing moves. The
+account needs inference credits or you'll get a 402 and every payment is refused.
 
-### Notes for graders
+## A couple of things worth knowing
 
-- **No bundler anywhere.** The agent/worker are EOA delegates, so redemption is a plain transaction
-  to the DelegationManager via the ERC-7710 wallet action (`sendTransactionWithDelegation`). Only the
-  funded *delegator* is a smart account.
-- **The e2e generates fresh keys per run.** The well-known Anvil dev addresses carry leftover
-  EIP-7702 delegations on real Base Sepolia, which makes the DelegationManager treat an EOA
-  *redelegator* as a contract and breaks A2A — a real, documented gotcha we hit and worked around.
+No bundler is used anywhere. The agent and worker are plain EOAs, so redeeming a delegation is just a
+normal transaction to the DelegationManager (via the ERC-7710 wallet action). Only the funded
+delegator is a smart account.
+
+The e2e generates fresh keys each run instead of using the well-known Anvil dev keys. Those famous
+test addresses already have EIP-7702 delegations sitting on real Base Sepolia, which makes the
+DelegationManager treat an EOA redelegator as a contract and breaks the A2A chain. Took a while to
+figure out, so it's worth flagging.

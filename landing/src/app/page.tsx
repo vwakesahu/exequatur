@@ -26,7 +26,7 @@ export default function Page() {
   return (
     <div className="relative max-w-full">
       <Grain />
-      <div className="relative z-10 mb-[22rem] w-full rounded-b-[60px] pb-24 md:rounded-b-[120px]" style={MESH}>
+      <div className="relative z-10 mb-[34rem] w-full rounded-b-[60px] pb-24 md:rounded-b-[120px]" style={MESH}>
         <Navbar />
         <Hero />
         <Features />

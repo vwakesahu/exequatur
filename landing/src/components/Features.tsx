@@ -57,7 +57,7 @@ export default function Features() {
       {/* Mechanism, editorial columns */}
       <div className="mt-16 grid gap-x-10 gap-y-12 md:grid-cols-3 md:gap-y-0">
         {pillars.map((p) => (
-          <div key={p.n} className="border-t border-foreground/10 pt-6">
+          <div key={p.n}>
             <div className="font-display text-5xl font-semibold text-indigo-500">{p.n}</div>
             <h4 className="mt-6 text-xl font-medium text-foreground">{p.title}</h4>
             <p className="mt-2 leading-relaxed text-muted-foreground">{p.body}</p>

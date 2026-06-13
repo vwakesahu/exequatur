@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa6";
-import { ArrowRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Magnetic from "@/components/Magnetic";
 
 const REPO = "https://github.com/vwakesahu/exequatur";
+const APP = "https://app.exequatur.xyz";
 
 export default function Cta() {
   return (
@@ -23,22 +24,22 @@ export default function Cta() {
         <div className="relative mt-10 flex flex-wrap items-center justify-center gap-4">
           <Magnetic>
             <Link
-              href={REPO}
+              href={APP}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-white/90"
             >
-              <FaGithub className="h-4 w-4" /> View on GitHub
+              Launch app <ArrowUpRight className="h-4 w-4" />
             </Link>
           </Magnetic>
           <Magnetic>
             <Link
-              href={`${REPO}#tests`}
+              href={REPO}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 rounded-full border border-white/40 px-7 py-3.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
             >
-              Read the spec <ArrowRight className="h-4 w-4" />
+              <FaGithub className="h-4 w-4" /> View on GitHub
             </Link>
           </Magnetic>
         </div>

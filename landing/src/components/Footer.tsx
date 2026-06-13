@@ -4,8 +4,8 @@ const REPO = "https://github.com/vwakesahu/exequatur";
 
 export default function Footer() {
   return (
-    <footer className="fixed bottom-0 left-0 -z-10 flex min-h-[22rem] w-full items-end bg-neutral-950">
-      <div className="w-full px-6 pb-10 md:px-10">
+    <footer className="fixed bottom-0 left-0 -z-10 flex min-h-[34rem] w-full items-end bg-neutral-950">
+      <div className="w-full px-6 pb-16 md:px-10">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-8 border-b border-white/10 pb-8 md:flex-row md:items-start md:justify-between">
             <div className="max-w-sm">

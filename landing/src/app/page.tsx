@@ -1,9 +1,11 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
+import ZoomParallax from "@/components/ZoomParallax";
 import StatementMarquee from "@/components/StatementMarquee";
 import Demo from "@/components/Demo";
 import Mechanics from "@/components/Mechanics";
+import Cta from "@/components/Cta";
 import Footer from "@/components/Footer";
 import Grain from "@/components/Grain";
 
@@ -26,9 +28,11 @@ export default function Page() {
         <Navbar />
         <Hero />
         <Features />
+        <ZoomParallax />
         <StatementMarquee />
         <Demo />
         <Mechanics />
+        <Cta />
       </div>
       <Footer />
     </div>

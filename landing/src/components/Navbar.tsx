@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa6";
 import AnimatedButton from "@/components/ui/cult/animated-button";
+import Magnetic from "@/components/Magnetic";
 
 const REPO = "https://github.com/vwakesahu/exequatur";
 
@@ -18,12 +19,14 @@ export default function Navbar() {
         >
           How it works
         </Link>
-        <Link href={REPO} target="_blank" rel="noreferrer">
-          <AnimatedButton size="lg" variant="accent" className="font-normal">
-            <FaGithub className="h-4 w-4" />
-            View on GitHub
-          </AnimatedButton>
-        </Link>
+        <Magnetic>
+          <Link href={REPO} target="_blank" rel="noreferrer">
+            <AnimatedButton size="lg" variant="accent" className="font-normal">
+              <FaGithub className="h-4 w-4" />
+              View on GitHub
+            </AnimatedButton>
+          </Link>
+        </Magnetic>
       </div>
     </nav>
   );

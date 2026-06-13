@@ -1,9 +1,24 @@
-import { ArrowUpRight } from "lucide-react";
-import Link from "next/link";
+const pillars = [
+  {
+    n: "01",
+    title: "Scoped delegation",
+    body: "A capped, token specific allowance from a MetaMask smart account. The agent is a delegate, never a key holder.",
+  },
+  {
+    n: "02",
+    title: "Policy attestation",
+    body: "Venice checks each action against your intent, then signs only what it actually approves.",
+  },
+  {
+    n: "03",
+    title: "On-chain enforcer",
+    body: "No fresh policy signature, the redemption reverts. The decision can never be skipped.",
+  },
+];
 
-const REPO = "https://github.com/vwakesahu/exequatur";
+const proof = ["No bundler", "EOA delegates", "Single-use attestations", "Live on Base Sepolia"];
 
-const CARD = "rounded-2xl border border-white/70 bg-white/75 backdrop-blur-xl shadow-[0_10px_40px_-20px_rgba(79,70,229,0.25)]";
+const CARD = "rounded-3xl border border-black/[0.06] bg-white shadow-[0_18px_50px_-28px_rgba(79,70,229,0.35)]";
 
 export default function Features() {
   return (
@@ -20,85 +35,51 @@ export default function Features() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:auto-rows-[200px] md:grid-cols-4 md:[grid-auto-flow:dense]">
-        {/* Anchor: the focal 2x2 image cell */}
-        <div className="group relative min-h-[300px] overflow-hidden rounded-2xl md:col-span-2 md:row-span-2 md:min-h-0">
+      {/* Hero feature: text + image */}
+      <div className={`grid overflow-hidden md:grid-cols-2 ${CARD}`}>
+        <div className="flex flex-col justify-center gap-6 p-8 md:p-14">
+          <h3 className="font-display text-3xl font-semibold leading-[1.1] tracking-tight text-foreground md:text-[2.6rem]">
+            Your money never moves on a hunch.
+          </h3>
+          <p className="text-lg leading-relaxed text-muted-foreground">
+            Even inside the cap, every transfer clears the policy check and the on-chain enforcer
+            before a single token leaves your account.
+          </p>
+          <div className="flex items-center gap-4 pt-2">
+            <span className="font-display text-5xl font-semibold leading-none text-indigo-600">16/16</span>
+            <span className="text-sm leading-snug text-muted-foreground">
+              contract tests green,
+              <br />
+              the full A2A flow included.
+            </span>
+          </div>
+        </div>
+        <div className="relative min-h-[320px] md:min-h-[480px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/assets/abstract-2.jpg"
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1a0f3d]/90 via-[#1a0f3d]/30 to-transparent" />
-          <div className="relative flex h-full flex-col justify-end p-8 md:p-10">
-            <h3 className="max-w-sm font-display text-3xl font-semibold leading-tight text-white md:text-[2.5rem]">
-              Your money never moves on a hunch.
-            </h3>
-            <p className="mt-4 max-w-sm text-white/80">
-              Even inside the cap, a transfer still clears the policy check and the on-chain enforcer
-              before a single token leaves your account.
-            </p>
-          </div>
+          <img src="/assets/abstract-2.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
         </div>
+      </div>
 
-        {/* Wide stat */}
-        <Link
-          href={`${REPO}#tests`}
-          target="_blank"
-          rel="noreferrer"
-          className={`group flex flex-col justify-between p-7 transition-shadow hover:shadow-[0_16px_50px_-20px_rgba(79,70,229,0.4)] md:col-span-2 ${CARD}`}
-        >
-          <div className="flex items-start justify-between">
-            <span className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">verified</span>
-            <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-indigo-500" />
+      {/* Three pillars */}
+      <div className="mt-5 grid gap-5 md:grid-cols-3">
+        {pillars.map((p) => (
+          <div key={p.n} className={`flex flex-col gap-4 p-8 ${CARD}`}>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 font-display text-lg font-semibold text-indigo-600">
+              {p.n}
+            </div>
+            <h4 className="text-lg font-medium text-foreground">{p.title}</h4>
+            <p className="text-sm leading-relaxed text-muted-foreground">{p.body}</p>
           </div>
-          <div className="mt-6 flex items-end gap-4">
-            <div className="font-display text-6xl font-semibold leading-none text-foreground">16/16</div>
-            <p className="pb-1 text-sm text-muted-foreground">contract tests green, the full A2A flow included.</p>
-          </div>
-        </Link>
+        ))}
+      </div>
 
-        {/* Pillar 01 */}
-        <div className={`flex flex-col justify-between p-6 ${CARD}`}>
-          <div className="font-display text-3xl font-semibold text-indigo-500">01</div>
-          <div>
-            <h3 className="mb-1 text-base font-medium text-foreground">Scoped delegation</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">A capped, token specific allowance. The agent is a delegate, never a key holder.</p>
-          </div>
-        </div>
-
-        {/* Pillar 02 */}
-        <div className={`flex flex-col justify-between p-6 ${CARD}`}>
-          <div className="font-display text-3xl font-semibold text-indigo-500">02</div>
-          <div>
-            <h3 className="mb-1 text-base font-medium text-foreground">Policy attestation</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">Venice checks each action against your intent, then signs only what it approves.</p>
-          </div>
-        </div>
-
-        {/* Enforcer (indigo) */}
-        <div className="flex flex-col justify-between rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 p-7 shadow-[0_10px_40px_-15px_rgba(99,102,241,0.5)] md:col-span-2">
-          <div className="font-display text-3xl font-semibold text-white/90">03</div>
-          <div>
-            <h3 className="mb-1 text-lg font-medium text-white">On-chain enforcer</h3>
-            <p className="text-sm text-white/80">No fresh policy signature, the redemption reverts. The decision can never be skipped.</p>
-          </div>
-        </div>
-
-        {/* Network image accent */}
-        <div className="group relative min-h-[220px] overflow-hidden rounded-2xl md:col-span-2 md:min-h-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/assets/abstract-3.jpg"
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0c1530]/85 to-[#0c1530]/10" />
-          <div className="relative flex h-full flex-col justify-end p-7">
-            <h3 className="text-lg font-medium text-white">Agent to agent, still bounded</h3>
-            <p className="text-sm text-white/75">The narrowest cap in a redelegation chain always wins on-chain.</p>
-          </div>
-        </div>
+      {/* Proof strip */}
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        {proof.map((p) => (
+          <span key={p} className="rounded-full border border-black/[0.06] bg-white px-5 py-2.5 text-sm font-medium text-muted-foreground shadow-sm">
+            {p}
+          </span>
+        ))}
       </div>
     </section>
   );

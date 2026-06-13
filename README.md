@@ -18,26 +18,7 @@ of Venice tracks.
 
 ## How it works
 
-```
-  intent + the action the agent wants to do
-                  |
-                  v
-          agent (an EOA)  --- asks --->  policy service  --->  Venice
-                  |                            |          "does this match the intent?
-                  |                            |           is the context trying to trick me?"
-                  |                     if approved, sign an
-                  |                     ECDSA attestation
-                  |  <---- attestation -------+
-                  v
-        redeemDelegations(action, attestation)
-                  |
-                  v
-          DelegationManager  runs the caveats on the delegation:
-                  |             - ERC20 spend cap   (a built-in enforcer)
-                  |             - AttestationEnforcer (needs the fresh policy signature)  <- the firewall
-                  v
-        delegator smart account sends the USDC to the merchant
-```
+![Architecture](docs/arc.png)
 
 The attestation is bound to the exact action (chain, delegation, target, amount, calldata, a nonce,
 and an expiry), so a signature for one payment can't be reused for another. It's single use, keyed

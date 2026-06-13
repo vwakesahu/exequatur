@@ -22,5 +22,6 @@ sdk/dist/
 *.log
 .DS_Store
 
-# excluded from the published repo (kept locally)
-docs/
+# docs .md kept local; only the architecture image is published
+docs/*
+!docs/arc.png

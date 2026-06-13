@@ -1,102 +1,94 @@
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 
 const REPO = "https://github.com/vwakesahu/exequatur";
 
+const pillars = [
+  {
+    n: "01",
+    title: "Scoped delegation",
+    body: "A capped, token specific allowance from a MetaMask smart account. The agent is a delegate, never a key holder.",
+  },
+  {
+    n: "02",
+    title: "Policy attestation",
+    body: "Venice checks each action against your intent. Approve and it gets signed, deny and nothing moves.",
+  },
+  {
+    n: "03",
+    title: "On-chain enforcer",
+    body: "A custom caveat verifies that signature during redemption. No fresh signature, the transaction reverts.",
+  },
+];
+
+const chips = ["No bundler", "EOA delegates", "Single-use attestations", "Live on Base Sepolia"];
+
 export default function Features() {
   return (
-    <div className="mx-auto max-w-7xl pb-24">
-      <div className="mb-6 grid h-[40vh] w-full grid-cols-1 place-items-center gap-6">
-        <h2 className="text-center font-display text-4xl font-semibold leading-tight tracking-tight md:text-6xl">
+    <section className="mx-auto max-w-7xl px-4 pb-24 pt-10">
+      <div className="mb-12 max-w-2xl">
+        <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-indigo-400">The firewall</p>
+        <h2 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
           <span className="text-foreground">Agent spending,</span>
           <br />
-          <span className="bg-gradient-to-b from-indigo-400 to-indigo-600 bg-clip-text text-transparent dark:from-indigo-300 dark:to-indigo-500">
-            permanently bounded.
-          </span>
+          <span className="bg-gradient-to-b from-indigo-300 to-indigo-500 bg-clip-text text-transparent">permanently bounded.</span>
         </h2>
+        <p className="mt-5 text-lg text-muted-foreground">
+          A spend cap stops the obvious drain. exequatur stops the clever one too, by gating every
+          payment on a fresh policy decision that an agent cannot forge or skip.
+        </p>
       </div>
 
-      <div className="mx-auto max-w-7xl p-4">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Left column */}
-          <div className="space-y-6">
-            <div className="aspect-square rounded-3xl bg-gradient-to-b from-indigo-400 to-indigo-600 p-8">
-              <div className="flex h-full flex-col justify-between">
-                <div className="font-display text-7xl font-medium text-white md:text-8xl">01</div>
-                <div>
-                  <h3 className="mb-2 text-xl text-white">Scoped delegation</h3>
-                  <p className="text-white/75">
-                    A MetaMask smart account grants a capped, token specific allowance. The agent is
-                    a delegate, never a key holder.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-border bg-muted p-8">
-              <div className="font-display text-7xl font-medium text-foreground md:text-8xl">02</div>
-              <div className="mt-6">
-                <h3 className="mb-2 text-xl text-foreground">Policy attestation</h3>
-                <p className="text-muted-foreground">
-                  Every action is checked against your intent by Venice. Approve and it gets signed,
-                  deny and nothing moves.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Center column */}
-          <div className="flex h-full flex-col justify-between space-y-6">
-            <div className="hidden lg:block" />
-            <div className="rounded-3xl p-8">
-              <div className="relative flex h-full items-center justify-center">
-                <div className="absolute h-44 w-44 rounded-full bg-indigo-500/25 blur-3xl" />
-                <div className="relative h-36 w-36 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-700 shadow-[0_25px_70px_-15px_rgba(79,70,229,0.65)]" />
-              </div>
-            </div>
-            <div className="rounded-3xl bg-gradient-to-b from-indigo-400 to-indigo-600 p-8">
-              <div className="flex items-center justify-between gap-4">
-                <Link href={REPO} target="_blank" rel="noreferrer">
-                  <button className="rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition-all duration-300 hover:bg-neutral-100">
-                    See it run
-                  </button>
-                </Link>
-                <Link
-                  href={REPO}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-white transition-all duration-300 hover:bg-neutral-100"
-                >
-                  <ArrowRight className="h-5 w-5 text-black" />
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Right column */}
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-border bg-muted p-8">
-              <div className="font-display text-7xl font-medium text-foreground md:text-8xl">03</div>
-              <div className="mt-6">
-                <h3 className="mb-2 text-xl text-foreground">On-chain enforcer</h3>
-                <p className="text-muted-foreground">
-                  A custom caveat checks that signature inside the redemption. No fresh signature,
-                  the transaction reverts.
-                </p>
-              </div>
-            </div>
-
-            <div className="aspect-square rounded-3xl bg-gradient-to-b from-indigo-400 to-indigo-600 p-8">
-              <div className="flex h-full flex-col justify-between">
-                <div className="font-display text-6xl font-medium text-white md:text-7xl">16/16</div>
-                <p className="text-lg text-white/90">
-                  Contract tests green, including the full agent to sub-agent redelegation flow.
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        {/* wide statement card */}
+        <div className="flex min-h-[260px] flex-col justify-between rounded-3xl bg-gradient-to-br from-indigo-500 to-indigo-700 p-8 md:col-span-2">
+          <h3 className="font-display text-3xl font-semibold leading-tight text-white md:text-4xl">
+            Your money never moves on a hunch.
+          </h3>
+          <p className="max-w-md text-white/80">
+            Even when a transfer sits comfortably inside the cap, it still has to clear the policy
+            check and the on-chain enforcer before a single token leaves your account.
+          </p>
         </div>
+
+        {/* stat card */}
+        <Link
+          href={`${REPO}#tests`}
+          target="_blank"
+          rel="noreferrer"
+          className="group flex min-h-[260px] flex-col justify-between rounded-3xl border border-border bg-card p-8 transition-colors hover:border-indigo-500/50"
+        >
+          <div className="flex items-start justify-between">
+            <span className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">verified</span>
+            <ArrowUpRight className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-indigo-400" />
+          </div>
+          <div>
+            <div className="font-display text-6xl font-medium text-foreground">16/16</div>
+            <p className="mt-2 text-muted-foreground">contract tests green, full A2A flow included.</p>
+          </div>
+        </Link>
+
+        {/* pillars */}
+        {pillars.map((p) => (
+          <div key={p.n} className="flex flex-col rounded-3xl border border-border bg-card p-8">
+            <div className="font-display text-5xl font-medium text-indigo-400">{p.n}</div>
+            <h3 className="mb-2 mt-6 text-xl text-foreground">{p.title}</h3>
+            <p className="text-muted-foreground">{p.body}</p>
+          </div>
+        ))}
       </div>
-    </div>
+
+      {/* content chips */}
+      <div className="mt-5 grid grid-cols-2 gap-5 md:grid-cols-4">
+        {chips.map((c) => (
+          <div
+            key={c}
+            className="rounded-2xl border border-border bg-card/60 px-5 py-4 text-center text-sm font-medium text-muted-foreground"
+          >
+            {c}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

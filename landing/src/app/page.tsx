@@ -1,8 +1,9 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
+import StatementMarquee from "@/components/StatementMarquee";
 import Demo from "@/components/Demo";
-import HowItHolds from "@/components/HowItHolds";
+import Mechanics from "@/components/Mechanics";
 import Footer from "@/components/Footer";
 
 export default function Page() {
@@ -12,8 +13,9 @@ export default function Page() {
         <Navbar />
         <Hero />
         <Features />
+        <StatementMarquee />
         <Demo />
-        <HowItHolds />
+        <Mechanics />
       </div>
       <Footer />
     </div>

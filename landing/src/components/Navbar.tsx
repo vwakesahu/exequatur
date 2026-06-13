@@ -3,7 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import AnimatedButton from "@/components/ui/cult/animated-button";
 import Magnetic from "@/components/Magnetic";
 
-const REPO = "https://github.com/vwakesahu/exequatur";
 const APP = "https://app.exequatur.xyz";
 
 export default function Navbar() {
@@ -14,12 +13,6 @@ export default function Navbar() {
       </Link>
 
       <div className="flex items-center gap-3">
-        <Link
-          href={`${REPO}#tests`}
-          className="hidden text-sm font-normal text-muted-foreground transition-colors hover:text-foreground sm:block"
-        >
-          How it works
-        </Link>
         <Magnetic>
           <Link href={APP} target="_blank" rel="noreferrer">
             <AnimatedButton size="lg" variant="accent" className="font-normal">

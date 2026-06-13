@@ -2,12 +2,12 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import ZoomParallax from "@/components/ZoomParallax";
-import StatementMarquee from "@/components/StatementMarquee";
+// import StatementMarquee from "@/components/StatementMarquee";
 import ScrollReveal from "@/components/ScrollReveal";
 import Demo from "@/components/Demo";
 import Mechanics from "@/components/Mechanics";
-import Playground from "@/components/Playground";
-import Cta from "@/components/Cta";
+// import Playground from "@/components/Playground";
+// import Cta from "@/components/Cta";
 import Footer from "@/components/Footer";
 import Grain from "@/components/Grain";
 
@@ -26,17 +26,18 @@ export default function Page() {
   return (
     <div className="relative max-w-full">
       <Grain />
-      <div className="relative z-10 mb-[34rem] w-full rounded-b-[60px] pb-24 md:rounded-b-[120px]" style={MESH}>
+      {/* mb is ~half the footer height so the footer never fully reveals — keeps the black backdrop illusion */}
+      <div className="relative z-10 mb-[17rem] w-full rounded-b-[60px] pb-24 md:rounded-b-[120px]" style={MESH}>
         <Navbar />
         <Hero />
         <Features />
-        <StatementMarquee />
+        {/* <StatementMarquee /> */}
         <ScrollReveal />
         <ZoomParallax />
         <Demo />
         <Mechanics />
-        <Playground />
-        <Cta />
+        {/* <Playground /> */}
+        {/* <Cta /> */}
       </div>
       <Footer />
     </div>

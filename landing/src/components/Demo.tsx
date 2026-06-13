@@ -22,7 +22,6 @@ export default function Demo() {
 
       <YouTubePlayer
         videoId={DEMO_VIDEO}
-        title="exequatur: scoped delegation, a Venice policy check, on-chain enforcement on Base Sepolia"
         containerClassName="rounded-3xl border-border shadow-2xl shadow-indigo-500/10"
       />
 

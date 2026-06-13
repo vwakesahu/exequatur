@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 const REPO = "https://github.com/vwakesahu/exequatur";
+const APP = "https://app.exequatur.xyz";
 
 export default function Footer() {
   return (
@@ -20,13 +21,13 @@ export default function Footer() {
                 <p className="mb-3 text-xs uppercase tracking-wider text-white/40">Project</p>
                 <ul className="space-y-2 text-sm text-white/60">
                   <li>
-                    <Link href={REPO} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
-                      GitHub
+                    <Link href={APP} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
+                      Launch app
                     </Link>
                   </li>
                   <li>
-                    <Link href={`${REPO}#tests`} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
-                      How it works
+                    <Link href={REPO} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
+                      GitHub
                     </Link>
                   </li>
                 </ul>

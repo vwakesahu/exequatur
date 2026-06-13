@@ -3,10 +3,9 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 
-// 7 zooming tiles (after Olivier Larose). The zoom completes in the first ~55% of the section, then
-// the center image stays pinned while a headline reveals over it, then the section releases.
+// Surrounding tiles fly outward; the center tile settles at ~85% of the viewport (centered, not
+// full-bleed). Then it holds while a dark panel + headline reveal over it, then the section releases.
 const TILES = [
-  { src: "abstract-1", box: "h-[42vh] w-[60vw] md:h-[25vh] md:w-[25vw]", to: 4 },
   { src: "abstract-6", box: "left-[5vw] top-[-30vh] h-[30vh] w-[35vw]", to: 5 },
   { src: "abstract-2", box: "left-[-25vw] top-[-10vh] h-[45vh] w-[20vw]", to: 6 },
   { src: "abstract-5", box: "left-[27.5vw] h-[25vh] w-[25vw]", to: 5 },
@@ -21,23 +20,21 @@ export default function ZoomParallax() {
   const container = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: container, offset: ["start start", "end end"] });
 
-  // Zoom resolves over [0, ZOOM_END], then holds (useTransform clamps to the output range).
-  const s4 = useTransform(scrollYProgress, [0, ZOOM_END], [1, 4]);
+  const center = useTransform(scrollYProgress, [0, ZOOM_END], [1, 3.4]); // settles at ~85%
   const s5 = useTransform(scrollYProgress, [0, ZOOM_END], [1, 5]);
   const s6 = useTransform(scrollYProgress, [0, ZOOM_END], [1, 6]);
   const s8 = useTransform(scrollYProgress, [0, ZOOM_END], [1, 8]);
   const s9 = useTransform(scrollYProgress, [0, ZOOM_END], [1, 9]);
-  const scaleFor: Record<number, typeof s4> = { 4: s4, 5: s5, 6: s6, 8: s8, 9: s9 };
+  const scaleFor: Record<number, typeof s5> = { 5: s5, 6: s6, 8: s8, 9: s9 };
 
-  // Pinned reveal phase.
-  const overlay = useTransform(scrollYProgress, [ZOOM_END - 0.05, 0.68], [0, 0.66]);
-  const textOpacity = useTransform(scrollYProgress, [0.62, 0.8], [0, 1]);
-  const textY = useTransform(scrollYProgress, [0.62, 0.8], [48, 0]);
-  const eyebrowOpacity = useTransform(scrollYProgress, [0.58, 0.7], [0, 1]);
+  const overlay = useTransform(scrollYProgress, [0.5, 0.68], [0, 0.7]);
+  const textOpacity = useTransform(scrollYProgress, [0.62, 0.82], [0, 1]);
+  const textY = useTransform(scrollYProgress, [0.62, 0.82], [44, 0]);
 
   return (
     <section ref={container} className="relative h-[340vh]">
-      <div className="sticky top-0 h-screen overflow-hidden">
+      <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
+        {/* surrounding tiles */}
         {TILES.map((tile, i) => (
           <motion.div key={i} style={{ scale: scaleFor[tile.to] }} className="absolute inset-0 flex items-center justify-center">
             <div className={`relative overflow-hidden rounded-xl ${tile.box}`}>
@@ -47,23 +44,29 @@ export default function ZoomParallax() {
           </motion.div>
         ))}
 
-        {/* Darkening layer so the headline reads on the image */}
-        <motion.div style={{ opacity: overlay }} className="absolute inset-0 bg-[#0b0820]" />
+        {/* center tile, settles at ~85% */}
+        <motion.div style={{ scale: center }} className="absolute inset-0 flex items-center justify-center">
+          <div className="relative h-[42vh] w-[60vw] overflow-hidden rounded-xl md:h-[25vh] md:w-[25vw]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/assets/abstract-1.jpg" alt="" className="h-full w-full object-cover" />
+          </div>
+        </motion.div>
 
-        {/* Pinned headline reveal */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-          <motion.p style={{ opacity: eyebrowOpacity }} className="mb-5 text-[13px] font-semibold uppercase tracking-widest text-indigo-300">
-            One guarantee
-          </motion.p>
-          <motion.h2
-            style={{ opacity: textOpacity, y: textY }}
-            className="max-w-4xl font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white md:text-7xl"
+        {/* pinned dark panel + headline, sized to the settled center image */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <motion.div
+            style={{ opacity: overlay }}
+            className="relative flex h-[85vh] w-[85vw] max-w-[1500px] items-center justify-center overflow-hidden rounded-[40px] bg-[#0b0820]"
           >
-            An agent you can hand a budget.
-          </motion.h2>
-          <motion.p style={{ opacity: textOpacity, y: textY }} className="mt-6 max-w-xl text-lg text-white/75">
-            Scoped by you, checked by Venice, enforced on-chain. Nothing moves without all three.
-          </motion.p>
+            <motion.div style={{ opacity: textOpacity, y: textY }} className="px-6 text-center">
+              <h2 className="mx-auto max-w-4xl font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white md:text-7xl">
+                An agent you can hand a budget.
+              </h2>
+              <p className="mx-auto mt-6 max-w-xl text-lg text-white/70">
+                Scoped by you, checked by Venice, enforced on-chain. Nothing moves without all three.
+              </p>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </section>

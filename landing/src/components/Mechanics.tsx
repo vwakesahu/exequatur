@@ -78,7 +78,6 @@ export default function Mechanics() {
   return (
     <section id="tests" className="scroll-mt-24">
       <div className="mx-auto max-w-7xl px-4 pt-24 text-center">
-        <p className="mb-4 text-[13px] font-semibold uppercase tracking-widest text-indigo-500">Under the hood</p>
         <h2 className="font-display text-4xl font-semibold tracking-tight md:text-6xl">
           <span className="text-foreground">Four things stand between</span>
           <br />

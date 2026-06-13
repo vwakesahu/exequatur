@@ -28,8 +28,8 @@ export default function Page() {
         <Navbar />
         <Hero />
         <Features />
-        <ZoomParallax />
         <StatementMarquee />
+        <ZoomParallax />
         <Demo />
         <Mechanics />
         <Cta />

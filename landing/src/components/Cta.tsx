@@ -12,7 +12,6 @@ export default function Cta() {
         <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-violet-300/30 blur-3xl" />
 
-        <p className="relative mb-4 text-[13px] font-semibold uppercase tracking-widest text-white/70">Open source</p>
         <h2 className="relative mx-auto max-w-2xl font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white md:text-6xl">
           Put your agent on a short leash.
         </h2>

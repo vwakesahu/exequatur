@@ -53,12 +53,14 @@ even though it is within the spend cap and "looks" legal.
 ```
 contracts/   Foundry — MockUSDC + AttestationEnforcer + tests (Layer 1, runs offline)
 sdk/         TypeScript — create→sign→redeem via the Smart Accounts Kit, policy service, Venice, e2e
-docs/        milestone map + the canonical action-hash spec
 ```
 
-See [docs/MILESTONES.md](docs/MILESTONES.md) for the build order/status and
-[docs/ACTION_HASH.md](docs/ACTION_HASH.md) for the canonical hash the off-chain policy service and
-the on-chain enforcer must agree on (the most bug-prone seam — guarded by tests in both languages).
+The canonical action hash — the most bug-prone seam — is defined identically off-chain in
+[sdk/src/actionHash.ts](sdk/src/actionHash.ts) and on-chain in
+[AttestationEnforcer.computeActionHash](contracts/src/AttestationEnforcer.sol), and locked by a
+shared golden-vector test in both languages
+([contracts/test/ActionHashParity.t.sol](contracts/test/ActionHashParity.t.sol),
+[sdk/test/actionHash.test.ts](sdk/test/actionHash.test.ts)) so neither side can drift.
 
 ## What's verified
 

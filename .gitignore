@@ -21,3 +21,6 @@ sdk/dist/
 # logs / os
 *.log
 .DS_Store
+
+# excluded from the published repo (kept locally)
+docs/

@@ -4,7 +4,9 @@ import { dirname, resolve } from "node:path";
 import type { Abi, Hex } from "viem";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const OUT = resolve(here, "../../contracts/out");
+// CONTRACTS_OUT lets a consumer pin the Foundry out/ dir absolutely. Needed when this package is
+// resolved from a copied location (e.g. a pnpm `file:` store) where the relative path no longer holds.
+const OUT = process.env.CONTRACTS_OUT ? resolve(process.env.CONTRACTS_OUT) : resolve(here, "../../contracts/out");
 
 interface ForgeArtifact {
   abi: Abi;

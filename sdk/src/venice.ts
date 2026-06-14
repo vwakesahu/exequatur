@@ -9,7 +9,7 @@ export interface VeniceConfig {
 }
 
 /** The risk flags the model may emit. Anything outside this set is treated as malformed → deny. */
-const RISK_FLAGS = [
+export const RISK_FLAGS = [
   "intent_mismatch",
   "amount_exceeds_intent",
   "anomalous_amount",
@@ -17,7 +17,11 @@ const RISK_FLAGS = [
   "prompt_injection",
 ] as const;
 
-const SYSTEM_PROMPT = `You are the authorization gate for an autonomous payment agent. The agent can \
+/**
+ * The authorizer's system prompt. Exported so a UI can stream a cosmetic "reasoning" narration from
+ * the same model with the identical instruction - the authoritative gate is still {makeVeniceBrain}.
+ */
+export const SYSTEM_PROMPT = `You are the authorization gate for an autonomous payment agent. The agent can \
 move a user's funds on-chain only with your approval. Decide whether ONE proposed payment may execute.
 
 Approve only if the payment clearly serves USER_INTENT and stays within its limits. If the action is \
@@ -56,7 +60,8 @@ const VERDICT_SCHEMA = {
   },
 } as const;
 
-function buildUserMessage(intent: string, action: ProposedAction): string {
+/** Builds the user message for the authorizer. Exported for the UI's cosmetic reasoning stream. */
+export function buildUserMessage(intent: string, action: ProposedAction): string {
   const d = action.description;
   const proposed = JSON.stringify(
     {

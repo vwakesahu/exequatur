@@ -1,14 +1,18 @@
 import { config as loadDotenv } from "dotenv";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { http, type Hex, createPublicClient } from "viem";
+import { http, type Chain, type Hex, createPublicClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
+import { DEPLOYED } from "./config.js";
 
 // Load sdk/.env first (takes precedence), then the repo-root .env. Both are gitignored.
 const here = dirname(fileURLToPath(import.meta.url));
 loadDotenv({ path: resolve(here, "../.env") });
 loadDotenv({ path: resolve(here, "../../.env") });
+// ENV_FILE lets a consumer point at an absolute .env. Needed when this package is resolved from a
+// copied location (pnpm `file:` store) where the relative paths above no longer find sdk/.env.
+if (process.env.ENV_FILE) loadDotenv({ path: process.env.ENV_FILE });
 
 /**
  * Generate FRESH keys per run by default, so the e2e runs against a Base Sepolia *fork*
@@ -37,7 +41,7 @@ const ownerKey = envKey("DELEGATOR_PRIVATE_KEY", "PRIVATE_KEY");
 export const env = {
   // Default to real Base Sepolia when a funded owner key is provided, else a local fork.
   rpcUrl: process.env.RPC_URL ?? (ownerKey ? "https://sepolia.base.org" : "http://127.0.0.1:8545"),
-  chain: baseSepolia,
+  chain: baseSepolia as Chain,
   /** True when running against real Base Sepolia (funded owner key, no local fork). */
   realNetwork: Boolean(ownerKey) && !process.env.RPC_URL?.includes("127.0.0.1"),
   // owner behind the user's MetaMask smart account (the delegator)
@@ -47,13 +51,22 @@ export const env = {
   policyKey: key("POLICY_PRIVATE_KEY"),
   merchant: privateKeyToAccount(key("MERCHANT_PRIVATE_KEY")).address,
   attacker: privateKeyToAccount(key("ATTACKER_PRIVATE_KEY")).address,
-  // pre-deployed addresses (optional - setup deploys fresh ones if empty)
-  mockUsdc: process.env.MOCK_USDC_ADDRESS as Hex | undefined,
-  attestationEnforcer: process.env.ATTESTATION_ENFORCER_ADDRESS as Hex | undefined,
+  /** The legit gift-card vendor agent that receives payment and issues a code. */
+  giftCardVendor: privateKeyToAccount(key("GIFT_CARD_VENDOR_KEY")).address,
+  /** A second, untrusted gift-card seller agent (the bad actor in the demo). */
+  giftCardScammer: privateKeyToAccount(key("GIFT_CARD_SCAMMER_KEY")).address,
+  // Pinned Base Sepolia fixtures (src/config.ts). Env vars override for local forks.
+  mockUsdc: (process.env.MOCK_USDC_ADDRESS as Hex | undefined) ?? DEPLOYED.mockUsdc,
+  attestationEnforcer: (process.env.ATTESTATION_ENFORCER_ADDRESS as Hex | undefined) ?? DEPLOYED.attestationEnforcer,
   // Venice (M4): if a key is present, the real brain is used; otherwise the deterministic stub
   veniceApiKey: process.env.VENICE_API_KEY,
   veniceBaseUrl: process.env.VENICE_BASE_URL ?? "https://api.venice.ai/api/v1",
-  veniceModel: process.env.VENICE_MODEL ?? "llama-3.3-70b",
+  /** Authorizer (firewall policy) model - structured JSON verdict, no tools needed. */
+  veniceModel: process.env.VENICE_MODEL ?? "qwen3-4b",
+  /** Agent brain model - must support tool calling (the `pay`/`redelegate` tools). */
+  veniceAgentModel: process.env.VENICE_AGENT_MODEL ?? "qwen3-6-27b",
+  /** Authorizer call timeout (ms). Larger models need more headroom; the firewall fails closed on timeout. */
+  veniceTimeoutMs: Number(process.env.VENICE_TIMEOUT_MS ?? 30_000),
 };
 
 export function publicClient() {

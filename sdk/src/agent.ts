@@ -42,6 +42,17 @@ export interface PaymentResult {
   revertError?: string;
 }
 
+/**
+ * Optional observers for the payment lifecycle. Backward-compatible - every field is optional and the
+ * e2e passes none. A UI uses these to render the firewall's stages as they happen: the action is
+ * proposed, the policy returns a verdict, and - only on approval - the redemption is submitted on-chain.
+ */
+export interface PaymentHooks {
+  onPropose?: (info: { gatedDelegations: number }) => void | Promise<void>;
+  onDecision?: (decision: { approved: boolean; reason: string; riskFlags: string[]; brain: string }) => void | Promise<void>;
+  onSubmitting?: () => void | Promise<void>;
+}
+
 /** Reads the actual ERC-20 amount transferred to `recipient` from a redemption receipt. */
 function transferredTo(receipt: TransactionReceipt, token: Address, recipient: Address): bigint {
   const logs = parseEventLogs({ abi: erc20Abi, eventName: "Transfer", logs: receipt.logs });
@@ -65,8 +76,9 @@ export async function attemptPayment(params: {
   recipient: Address;
   amount: bigint;
   context?: string;
+  hooks?: PaymentHooks;
 }): Promise<PaymentResult> {
-  const { ctx, service, chain } = params;
+  const { ctx, service, chain, hooks } = params;
   const leaf = chain[0];
 
   const action = erc20TransferAction({
@@ -86,9 +98,16 @@ export async function attemptPayment(params: {
     .map((d) => leafHash(d));
 
   log.step(`${params.actor} proposes: pay ${action.description.amount} mUSDC to ${params.recipient}`);
+  await hooks?.onPropose?.({ gatedDelegations: gatedHashes.length });
   const decision = await service.authorizeChain(params.intent, action, gatedHashes);
   log.policy(`policy(${decision.brain}): ${decision.approved ? "APPROVE" : "DENY"} - ${decision.reason}`);
   if (decision.riskFlags.length > 0) log.policy(`risk flags: ${decision.riskFlags.join(", ")}`);
+  await hooks?.onDecision?.({
+    approved: decision.approved,
+    reason: decision.reason,
+    riskFlags: decision.riskFlags,
+    brain: decision.brain,
+  });
 
   if (!decision.approved || !decision.attestations) {
     return { executed: false, reason: decision.reason, brain: decision.brain, riskFlags: decision.riskFlags };
@@ -99,6 +118,7 @@ export async function attemptPayment(params: {
     return att ? attachAttestation(ctx, d, att) : d;
   });
 
+  await hooks?.onSubmitting?.();
   try {
     const receipt = await redeem({
       ctx,

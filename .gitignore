@@ -25,3 +25,6 @@ sdk/dist/
 # docs .md kept local; only the architecture image is published
 docs/*
 !docs/arc.png
+
+# runtime spike state (full tx hashes, ephemeral addresses)
+last-run.json

@@ -30,6 +30,7 @@ import { attemptPayment, type PaymentResult } from "./agent.js";
 import { createWorkerRedelegation, leafHash, redeem } from "./delegation.js";
 import { transferCallData } from "./actions.js";
 import { screenAddress, type ScreeningResult } from "./screening.js";
+import { isRevoked } from "./revocation.js";
 import type { Context } from "./setup.js";
 
 const USDC_DECIMALS = 6;
@@ -272,6 +273,15 @@ const POLICY_UNAVAILABLE: PaymentResult = {
   riskFlags: ["policy_unavailable"],
 };
 
+// A revoked delegation: the firewall refuses before any on-chain attempt. (If anyone tries to redeem
+// it directly, the AttestationEnforcer also reverts it, since the policy issues no fresh attestation.)
+const REVOKED: PaymentResult = {
+  executed: false,
+  reason: "this delegation has been revoked. Grant a new allowance to resume payments.",
+  brain: "preflight",
+  riskFlags: ["revoked"],
+};
+
 /** Enrich the authorizer's intent with the user's spend cap (a policy fact, not agent spin). */
 function withCap(intent: string, capMusdc: string): string {
   return `${intent} (account policy: per-payment spend cap ${capMusdc} mUSDC; reject any amount above it).`;
@@ -349,6 +359,7 @@ export async function redeemSignedDelegation(params: {
 }): Promise<PaymentResult & { screening?: ScreeningResult }> {
   const bad = invalidAmount(params.amount);
   if (bad) return bad;
+  if (isRevoked(params.signedDelegation)) return REVOKED;
   const ctx = await redeemerContext();
   const cap = parseUnits(params.cap, USDC_DECIMALS);
   const amount = parseUnits(params.amount, USDC_DECIMALS);
@@ -443,6 +454,7 @@ export async function redelegateAndPay(params: {
 }): Promise<PaymentResult & { narrowedCap: string; screening?: ScreeningResult }> {
   const badAmt = invalidAmount(params.amount) ?? invalidAmount(params.narrowedCap);
   if (badAmt) return { ...badAmt, narrowedCap: params.narrowedCap };
+  if (isRevoked(params.signedRootDelegation)) return { ...REVOKED, narrowedCap: params.narrowedCap };
   const ctx = await redeemerContext();
   const narrowed = parseUnits(params.narrowedCap, USDC_DECIMALS);
   const broke = await insufficientBalance(params.signedRootDelegation.delegator, parseUnits(params.amount, USDC_DECIMALS));

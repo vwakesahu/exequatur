@@ -8,8 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Onboarding } from "@/components/console/onboarding";
 import { Console } from "@/components/console/chat";
+import { Settings } from "@/components/console/settings";
 import { fetchJson, short, type Info } from "@/lib/console-client";
-import { clearSession, loadSession, saveSession, sessionMatches, type ConsoleSession } from "@/lib/session";
+import {
+  addToHistory,
+  clearSession,
+  loadHistory,
+  loadSession,
+  markRevoked,
+  saveSession,
+  sessionId,
+  sessionMatches,
+  type ConsoleSession,
+  type StoredSession,
+} from "@/lib/session";
 
 export default function Page() {
   const { address, isConnected, connector } = useAccount();
@@ -20,9 +32,37 @@ export default function Page() {
 
   const [info, setInfo] = useState<Info | null>(null);
   const [session, setSession] = useState<ConsoleSession | null>(null);
+  const [sessions, setSessions] = useState<StoredSession[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string>();
 
   const wrongChain = isConnected && chainId !== baseSepolia.id;
+
+  function refreshHistory() {
+    if (address) setSessions(loadHistory(address, baseSepolia.id));
+  }
+
+  // Record a new grant in history and make it the active session.
+  function activate(s: ConsoleSession) {
+    saveSession(s);
+    addToHistory(s);
+    setSession(s);
+    refreshHistory();
+  }
+
+  async function revoke(targets: StoredSession[]) {
+    const live = targets.filter((s) => !s.revoked);
+    if (live.length === 0) return;
+    await fetchJson("/api/revoke", { delegations: live.map((s) => s.signedDelegation) });
+    markRevoked(live.map((s) => s.id));
+    refreshHistory();
+    // If the active session was just revoked, drop back to onboarding.
+    if (session && live.some((s) => s.id === sessionId(session))) {
+      clearSession();
+      setSession(null);
+      setShowSettings(false);
+    }
+  }
 
   useEffect(() => {
     fetchJson<Info>("/api/info").then(setInfo).catch((e) => setError(e.message));
@@ -34,15 +74,20 @@ export default function Page() {
   useEffect(() => {
     if (!(isConnected && address && !wrongChain && info)) {
       setSession(null);
+      setSessions([]);
+      setShowSettings(false);
       return;
     }
     const s = loadSession(address, baseSepolia.id);
     if (s && !sessionMatches(s, info)) {
       clearSession();
       setSession(null);
+      setSessions(loadHistory(address, baseSepolia.id));
       return;
     }
+    if (s) addToHistory(s); // a returning session predating history still shows in Settings
     setSession(s);
+    setSessions(loadHistory(address, baseSepolia.id));
   }, [address, isConnected, wrongChain, info]);
 
   const ready = isConnected && !wrongChain && info && connector;
@@ -64,6 +109,11 @@ export default function Page() {
               {wrongChain && (
                 <Button size="sm" variant="outline" onClick={() => switchChain({ chainId: baseSepolia.id })}>
                   Switch
+                </Button>
+              )}
+              {sessions.length > 0 && (
+                <Button size="sm" variant="ghost" onClick={() => setShowSettings((v) => !v)}>
+                  {showSettings ? "Back" : "Settings"}
                 </Button>
               )}
               {session && (
@@ -105,7 +155,18 @@ export default function Page() {
         <p className="text-xs text-muted-foreground">Switch to Base Sepolia to continue.</p>
       )}
 
-      {ready && session && (
+      {ready && showSettings && (
+        <Settings
+          info={info}
+          sessions={sessions}
+          activeId={session ? sessionId(session) : undefined}
+          onRevoke={(s) => revoke([s])}
+          onRevokeAll={() => revoke(sessions)}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {ready && !showSettings && session && (
         <>
           <div className="mb-4 text-xs text-muted-foreground">
             smart account{" "}
@@ -114,26 +175,11 @@ export default function Page() {
             </a>{" "}
             · cap {session.cap} mUSDC · agent {short(info.agent)}
           </div>
-          <Console
-            info={info}
-            session={session}
-            onSession={(s) => {
-              saveSession(s);
-              setSession(s);
-            }}
-          />
+          <Console info={info} session={session} onSession={activate} />
         </>
       )}
 
-      {ready && !session && (
-        <Onboarding
-          info={info}
-          onComplete={(s) => {
-            saveSession(s);
-            setSession(s);
-          }}
-        />
-      )}
+      {ready && !showSettings && !session && <Onboarding info={info} onComplete={activate} />}
 
       {!info && !error && isConnected && !wrongChain && <p className="text-xs text-muted-foreground">Loading…</p>}
       {error && <p className="mt-4 text-xs text-destructive">{error}</p>}

@@ -59,3 +59,57 @@ export function saveSession(session: ConsoleSession): void {
 export function clearSession(): void {
   window.localStorage.removeItem(KEY);
 }
+
+/**
+ * A grant in the session history, shown in Settings. Every delegation the user has signed is appended
+ * here (the active session is the most recent one), so the user can review and revoke any of them.
+ * `id` is the delegation salt - unique per grant, since onboarding signs with a random salt.
+ */
+export interface StoredSession extends ConsoleSession {
+  id: string;
+  createdAt: number;
+  revoked?: boolean;
+}
+
+const HISTORY_KEY = "exequatur.sessions.v1";
+
+function readHistory(): StoredSession[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as StoredSession[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHistory(all: StoredSession[]): void {
+  window.localStorage.setItem(HISTORY_KEY, JSON.stringify(all));
+}
+
+/** A delegation's stable id within the history (its salt, unique per grant). */
+export function sessionId(s: ConsoleSession): string {
+  return String(s.signedDelegation.salt);
+}
+
+/** All grants for the connected owner + chain, newest first. */
+export function loadHistory(owner?: Address, chainId?: number): StoredSession[] {
+  return readHistory()
+    .filter((s) => (!owner || s.owner.toLowerCase() === owner.toLowerCase()) && (!chainId || s.chainId === chainId))
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** Append a grant to the history. Idempotent: an already-recorded grant keeps its timestamp/revoked flag. */
+export function addToHistory(session: ConsoleSession): void {
+  const id = sessionId(session);
+  const all = readHistory();
+  if (all.some((s) => s.id === id)) return;
+  all.push({ ...session, id, createdAt: Date.now() });
+  writeHistory(all);
+}
+
+/** Mark a grant revoked in the history (the firewall enforces the revoke server-side). */
+export function markRevoked(ids: string[]): void {
+  const set = new Set(ids);
+  writeHistory(readHistory().map((s) => (set.has(s.id) ? { ...s, revoked: true } : s)));
+}

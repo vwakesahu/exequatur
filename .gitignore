@@ -28,3 +28,5 @@ docs/*
 
 # runtime spike state (full tx hashes, ephemeral addresses)
 last-run.json
+# server-side revocation list (revoked delegation hashes)
+revocations.json

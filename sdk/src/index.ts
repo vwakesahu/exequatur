@@ -54,6 +54,7 @@ export {
 export type { GiftCardOffer } from "./console.js";
 export { screenAddress } from "./screening.js";
 export type { ScreeningResult } from "./screening.js";
+export { revokeDelegations, isRevoked, listRevoked } from "./revocation.js";
 
 // Shared types.
 export type {

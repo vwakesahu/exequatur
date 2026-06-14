@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       transferred: r.transferred != null ? formatUnits(r.transferred, 6) : null,
       explorerTx: r.txHash ? `https://sepolia.basescan.org/tx/${r.txHash}` : null,
       revertError: r.revertError ?? null,
+      screening: r.screening ?? null,
     });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

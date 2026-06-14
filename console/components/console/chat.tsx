@@ -26,10 +26,17 @@ interface ActionOutput {
   vendorName?: string;
   code?: string | null;
   cancelled?: boolean;
+  screening?: Screening | null;
   txHash: string | null;
   transferred: string | null;
   explorerTx: string | null;
   revertError: string | null;
+}
+interface Screening {
+  provider: string;
+  status: "clear" | "flagged";
+  riskScore: number;
+  categories: string[];
 }
 interface RedeemResp {
   executed: boolean;
@@ -39,6 +46,7 @@ interface RedeemResp {
   txHash?: string | null;
   transferred?: string | null;
   revertError?: string | null;
+  screening?: Screening | null;
 }
 interface PayInput {
   amountMusdc?: string;
@@ -155,6 +163,7 @@ export function Console({
             riskFlags: r.riskFlags ?? [],
             recipient,
             amount: pay.amountMusdc ?? "0",
+            screening: r.screening ?? null,
             txHash: r.txHash ?? null,
             transferred: r.transferred ?? null,
             explorerTx: r.txHash ? `${info.explorerTxBase}${r.txHash}` : null,
@@ -594,6 +603,18 @@ function GiftCardBuyCard({
   );
 }
 
+/** The address-screening result line (sanctions / risk provider check). */
+function ScreeningLine({ screening }: { screening: Screening }) {
+  return (
+    <div className={screening.status === "clear" ? "text-muted-foreground" : "text-destructive"}>
+      address screening ({screening.provider}):{" "}
+      {screening.status === "clear"
+        ? `no risk flags, cleared (risk ${screening.riskScore}/100)`
+        : `flagged ${screening.categories.join(", ")} (risk ${screening.riskScore}/100)`}
+    </div>
+  );
+}
+
 /** One status line with a state dot. */
 function StatusLine({ state, children }: { state: "active" | "done" | "bad"; children: React.ReactNode }) {
   const color = state === "done" ? "bg-green-500" : state === "bad" ? "bg-destructive" : "bg-yellow-500 animate-pulse";
@@ -638,7 +659,7 @@ function PurchaseFlow({
   }, [active, result]);
 
   if (!result) {
-    const steps = [`Connecting to ${vendorName}`, "Submitting payment for firewall review", "Firewall (Venice) reviewing"];
+    const steps = [`Connecting to ${vendorName}`, "Screening recipient address", "Firewall (Venice) reviewing"];
     return (
       <div className="space-y-1">
         {steps.map((s, i) =>
@@ -660,13 +681,22 @@ function PurchaseFlow({
     ((result.riskFlags?.includes("allowance_exceeded") ?? false) || (result.revertError?.includes("allowance-exceeded") ?? false));
   const grantCap = String(Math.max(Number(result.amount), Number(cap)));
 
+  const screenFlagged = result.screening?.status === "flagged";
   return (
     <div className="space-y-1">
       <StatusLine state="done">Connected to {vendorName}</StatusLine>
-      <StatusLine state="done">Submitted for firewall review</StatusLine>
-      <StatusLine state={result.executed ? "done" : "bad"}>
-        Firewall {result.executed ? "approved" : "refused"} the payment
-      </StatusLine>
+      {result.screening && (
+        <StatusLine state={screenFlagged ? "bad" : "done"}>
+          {screenFlagged
+            ? `Screening flagged the recipient (${result.screening.categories.join(", ")})`
+            : `Screened recipient: no risk flags (${result.screening.provider})`}
+        </StatusLine>
+      )}
+      {!screenFlagged && (
+        <StatusLine state={result.executed ? "done" : "bad"}>
+          Firewall {result.executed ? "approved" : "refused"} the payment
+        </StatusLine>
+      )}
       {result.executed && <StatusLine state="done">Settled on-chain</StatusLine>}
 
       <div className="pt-1">
@@ -704,6 +734,7 @@ function ResultBody({ out, info }: { out: ActionOutput; info: Info }) {
         {out.amount} mUSDC to {short(out.recipient)}
         {out.narrowedCap ? ` · worker cap ${out.narrowedCap} mUSDC` : ""}
       </div>
+      {out.screening && <ScreeningLine screening={out.screening} />}
       <div>
         verdict ({out.verdict}): {out.reason}
       </div>

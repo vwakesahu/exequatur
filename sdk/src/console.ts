@@ -24,17 +24,40 @@ import { privateKeyToAccount } from "viem/accounts";
 import { type Delegation, getSmartAccountsEnvironment } from "@metamask/smart-accounts-kit";
 import { ERC20TransferAmountEnforcer } from "@metamask/smart-accounts-kit/contracts";
 import { env, publicClient } from "./env.js";
-import { artifact } from "./artifacts.js";
 import { PolicyService, makeRuleBrain } from "./policy-service.js";
 import { makeVeniceBrain } from "./venice.js";
 import { attemptPayment, type PaymentResult } from "./agent.js";
 import { createWorkerRedelegation, leafHash, redeem } from "./delegation.js";
 import { transferCallData } from "./actions.js";
+import { screenAddress, type ScreeningResult } from "./screening.js";
 import type { Context } from "./setup.js";
 
 const USDC_DECIMALS = 6;
 const GAS_TOPUP = parseEther("0.004");
 const GAS_MIN = parseEther("0.0015");
+
+// Minimal MockUSDC ABI (mint + balanceOf) inlined so the console reads NO Foundry artifact files at
+// runtime. This makes it work on a read-only serverless filesystem (Vercel) with no CONTRACTS_OUT.
+// The full on-disk artifact (with bytecode) is only used by the local deploy/e2e scripts.
+const MOCK_USDC_ABI = [
+  {
+    type: "function",
+    name: "mint",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
 
 /**
  * Persist the full run state (tx hashes, addresses, amounts) the app produces, so verification is a
@@ -162,8 +185,11 @@ export async function fundUsdc(params: { to: Address; amount: string }): Promise
   const { usdc } = await ensureContracts();
   const wallet = deployer();
   const pub = publicClient() as PublicClient;
-  const token = getContract({ address: usdc, abi: artifact("MockUSDC").abi, client: wallet });
-  const txHash = (await token.write.mint([params.to, parseUnits(params.amount, USDC_DECIMALS)])) as Hex;
+  const token = getContract({ address: usdc, abi: MOCK_USDC_ABI, client: wallet });
+  const txHash = (await token.write.mint([params.to, parseUnits(params.amount, USDC_DECIMALS)], {
+    account: wallet.account!,
+    chain: env.chain,
+  })) as Hex;
   await pub.waitForTransactionReceipt({ hash: txHash });
   recordRun({ fundTx: txHash, smartAccount: params.to, fundedMUSDC: params.amount });
   return { txHash };
@@ -175,7 +201,7 @@ async function rawBalance(address: Address): Promise<bigint> {
   const pub = publicClient() as PublicClient;
   return (await pub.readContract({
     address: usdc,
-    abi: artifact("MockUSDC").abi,
+    abi: MOCK_USDC_ABI,
     functionName: "balanceOf",
     args: [address],
   })) as bigint;
@@ -320,7 +346,7 @@ export async function redeemSignedDelegation(params: {
   intent: string;
   /** Untrusted context the agent observed (e.g. a seller's pitch). The authorizer treats it as data. */
   context?: string;
-}): Promise<PaymentResult> {
+}): Promise<PaymentResult & { screening?: ScreeningResult }> {
   const bad = invalidAmount(params.amount);
   if (bad) return bad;
   const ctx = await redeemerContext();
@@ -337,8 +363,19 @@ export async function redeemSignedDelegation(params: {
       riskFlags: ["allowance_exceeded"],
     };
   }
+  // Screen the recipient (sanctions / risk) before authorization. Fails closed on a hit.
+  const screening = await screenAddress(params.recipient);
+  if (screening.status === "flagged") {
+    return {
+      executed: false,
+      reason: `recipient failed address screening (${screening.provider}): ${screening.categories.join(", ")} (risk ${screening.riskScore}/100)`,
+      brain: "screening",
+      riskFlags: ["screening_failed"],
+      screening,
+    };
+  }
   const service = consolePolicy(params.recipient, cap);
-  if (!service) return POLICY_UNAVAILABLE;
+  if (!service) return { ...POLICY_UNAVAILABLE, screening };
   const result = await attemptPayment({
     ctx,
     service,
@@ -363,7 +400,7 @@ export async function redeemSignedDelegation(params: {
     payMUSDC: params.amount,
     transferredBaseUnits: result.transferred?.toString(),
   });
-  return result;
+  return { ...result, screening };
 }
 
 /**
@@ -403,15 +440,26 @@ export async function redelegateAndPay(params: {
   recipient: Address;
   amount: string;
   intent: string;
-}): Promise<PaymentResult & { narrowedCap: string }> {
+}): Promise<PaymentResult & { narrowedCap: string; screening?: ScreeningResult }> {
   const badAmt = invalidAmount(params.amount) ?? invalidAmount(params.narrowedCap);
   if (badAmt) return { ...badAmt, narrowedCap: params.narrowedCap };
   const ctx = await redeemerContext();
   const narrowed = parseUnits(params.narrowedCap, USDC_DECIMALS);
   const broke = await insufficientBalance(params.signedRootDelegation.delegator, parseUnits(params.amount, USDC_DECIMALS));
   if (broke) return { ...broke, narrowedCap: params.narrowedCap };
+  const screening = await screenAddress(params.recipient);
+  if (screening.status === "flagged") {
+    return {
+      executed: false,
+      reason: `recipient failed address screening (${screening.provider}): ${screening.categories.join(", ")} (risk ${screening.riskScore}/100)`,
+      brain: "screening",
+      riskFlags: ["screening_failed"],
+      narrowedCap: params.narrowedCap,
+      screening,
+    };
+  }
   const service = consolePolicy(params.recipient, narrowed);
-  if (!service) return { ...POLICY_UNAVAILABLE, narrowedCap: params.narrowedCap };
+  if (!service) return { ...POLICY_UNAVAILABLE, narrowedCap: params.narrowedCap, screening };
 
   const worker = await createWorkerRedelegation(ctx, params.signedRootDelegation, narrowed);
   const result = await attemptPayment({
@@ -431,7 +479,7 @@ export async function redelegateAndPay(params: {
     narrowedCapMUSDC: params.narrowedCap,
     redelegatePayMUSDC: params.amount,
   });
-  return { ...result, narrowedCap: params.narrowedCap };
+  return { ...result, narrowedCap: params.narrowedCap, screening };
 }
 
 /** A gift-card code the vendor agent issues on payment - deterministic from the settled tx, so it is unique per purchase. */
@@ -493,7 +541,7 @@ export async function buyGiftCardFromVendor(params: {
   budgetUsdc: string;
   pitch: string;
   cap: string;
-}): Promise<PaymentResult & { brand: string; vendorName: string; code: string | null }> {
+}): Promise<PaymentResult & { brand: string; vendorName: string; code: string | null; screening?: ScreeningResult }> {
   const intent = `The user wants to buy a ${params.brand} gift card and agreed to pay ${params.budgetUsdc} mUSDC. This payment sends ${params.totalUsdc} mUSDC to the gift-card seller "${params.vendorName}".`;
   const result = await redeemSignedDelegation({
     signedDelegation: params.signedDelegation,

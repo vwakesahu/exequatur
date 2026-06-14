@@ -52,6 +52,8 @@ export {
   buyGiftCardFromVendor,
 } from "./console.js";
 export type { GiftCardOffer } from "./console.js";
+export { screenAddress } from "./screening.js";
+export type { ScreeningResult } from "./screening.js";
 
 // Shared types.
 export type {

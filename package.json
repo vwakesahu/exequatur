@@ -1,0 +1,11 @@
+{
+  "name": "exequatur",
+  "private": true,
+  "description": "Exequatur monorepo: firewall SDK + the console app. (landing/ is a separate standalone app.)",
+  "scripts": {
+    "build:sdk": "pnpm --filter delegation-firewall-sdk build",
+    "dev": "pnpm --filter delegation-firewall-sdk build && pnpm --filter exequatur-console dev",
+    "build": "pnpm --filter delegation-firewall-sdk build && pnpm --filter exequatur-console build"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

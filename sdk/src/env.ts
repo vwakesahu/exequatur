@@ -6,6 +6,13 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { DEPLOYED } from "./config.js";
 
+// Server-only: this module reads private keys from the environment and must never run in a browser.
+// `serverExternalPackages` already keeps it out of the client bundle; this is a loud backstop so an
+// accidental client import fails immediately instead of shipping key-reading code to the browser.
+if (typeof window !== "undefined") {
+  throw new Error("delegation-firewall-sdk is server-only; do not import it from client/browser code");
+}
+
 // Load sdk/.env first (takes precedence), then the repo-root .env. Both are gitignored.
 const here = dirname(fileURLToPath(import.meta.url));
 loadDotenv({ path: resolve(here, "../.env") });

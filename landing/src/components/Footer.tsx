@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const REPO = "https://github.com/vwakesahu/exequatur";
 const APP = "https://app.exequatur.xyz";
@@ -10,7 +11,10 @@ export default function Footer() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-8 border-b border-white/10 pb-8 md:flex-row md:items-start md:justify-between">
             <div className="max-w-sm">
-              <span className="font-display text-lg font-medium tracking-tight text-white">exequatur</span>
+              <span className="flex items-center gap-2 font-display text-lg font-medium tracking-tight text-white">
+                <Image src="/orb.png" alt="" width={26} height={26} />
+                exequatur
+              </span>
               <p className="mt-4 text-sm leading-relaxed text-white/50">
                 A firewall for autonomous payment agents. Scoped delegation, a Venice policy check,
                 and an on-chain enforcer no agent can talk its way past.
@@ -30,14 +34,6 @@ export default function Footer() {
                       GitHub
                     </Link>
                   </li>
-                </ul>
-              </div>
-              <div>
-                <p className="mb-3 text-xs uppercase tracking-wider text-white/40">Built on</p>
-                <ul className="space-y-2 text-sm text-white/60">
-                  <li>MetaMask Smart Accounts</li>
-                  <li>Venice</li>
-                  <li>Base Sepolia</li>
                 </ul>
               </div>
             </div>

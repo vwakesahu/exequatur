@@ -7,12 +7,12 @@ import { motion, useScroll, useTransform, type MotionValue } from "motion/react"
 // full-bleed). The image stays the hero; only a soft bottom scrim fades in and the headline rises
 // line by line from behind a mask as you scroll.
 const TILES = [
-  { src: "abstract-6", box: "left-[5vw] top-[-30vh] h-[30vh] w-[35vw]", to: 5 },
-  { src: "abstract-2", box: "left-[-25vw] top-[-10vh] h-[45vh] w-[20vw]", to: 6 },
-  { src: "abstract-5", box: "left-[27.5vw] h-[25vh] w-[25vw]", to: 5 },
-  { src: "abstract-3", box: "left-[5vw] top-[27.5vh] h-[25vh] w-[20vw]", to: 6 },
-  { src: "abstract-6", box: "left-[-22.5vw] top-[27.5vh] h-[25vh] w-[30vw]", to: 8 },
-  { src: "abstract-2", box: "left-[25vw] top-[22.5vh] h-[15vh] w-[15vw]", to: 9 },
+  { src: "abstract-6", box: "left-[5vw] top-[-30vh] h-[30vh] w-[35vw]", to: 5, label: "scoped by you" },
+  { src: "abstract-2", box: "left-[-25vw] top-[-10vh] h-[45vh] w-[20vw]", to: 6, label: "fails closed" },
+  { src: "abstract-5", box: "left-[27.5vw] h-[25vh] w-[25vw]", to: 5, label: "checked by venice" },
+  { src: "abstract-3", box: "left-[5vw] top-[27.5vh] h-[25vh] w-[20vw]", to: 6, label: "enforced on-chain" },
+  { src: "abstract-6", box: "left-[-22.5vw] top-[27.5vh] h-[25vh] w-[30vw]", to: 8, label: "revoke anytime" },
+  { src: "abstract-2", box: "left-[25vw] top-[22.5vh] h-[15vh] w-[15vw]", to: 9, label: "you sign once" },
 ];
 
 const ZOOM_END = 0.55;
@@ -51,6 +51,10 @@ export default function ZoomParallax() {
             <div className={`relative overflow-hidden rounded-xl ${tile.box}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/assets/${tile.src}.jpg`} alt="" className="h-full w-full object-cover" />
+              {/* minimal easter-egg label (surrounding tiles only; the center tile reveals later) */}
+              <span className="absolute bottom-2 left-2.5 font-mono text-[10px] lowercase tracking-[0.18em] text-white/75 [text-shadow:0_1px_6px_rgba(0,0,0,0.7)]">
+                {tile.label}
+              </span>
             </div>
           </motion.div>
         ))}

@@ -75,6 +75,36 @@ transaction to the DelegationManager (the ERC-7710 wallet action), and only the 
 account. The console keeps every private key and the policy server-side; the browser only builds and
 signs the delegation with the user's wallet.
 
+## Tracks (where to find each in the code)
+
+We are submitting to three tracks. Everything runs through the MetaMask Smart Accounts Kit in the
+main flow.
+
+**Best Agent** — an autonomous agent you hand a budget to.
+- Connect a wallet and sign one scoped delegation: [console/lib/grant.ts](console/lib/grant.ts)
+  (`buildSmartAccount`, `signGrant`, via `toMetaMaskSmartAccount` + `createDelegation` +
+  `signDelegation`), driven from [console/components/console/onboarding.tsx](console/components/console/onboarding.tsx).
+- The agent proposes and pays in chat: the `pay` tool in
+  [console/app/api/agent/route.ts](console/app/api/agent/route.ts) +
+  [console/components/console/chat.tsx](console/components/console/chat.tsx).
+- Each payment is an on-chain `DelegationManager.redeemDelegations`:
+  [sdk/src/agent.ts](sdk/src/agent.ts) (`attemptPayment`), [sdk/src/delegation.ts](sdk/src/delegation.ts)
+  (`redeem`), [sdk/src/console.ts](sdk/src/console.ts) (`redeemSignedDelegation`).
+
+**Best A2A coordination** — redelegation.
+- The agent redelegates a narrower cap to a worker: [sdk/src/delegation.ts](sdk/src/delegation.ts)
+  (`createWorkerRedelegation`), [sdk/src/console.ts](sdk/src/console.ts) (`redelegateAndPay`), and the
+  `redelegate` tool in [console/app/api/agent/route.ts](console/app/api/agent/route.ts).
+- On-chain behaviour + tests: [contracts/test/Integration.t.sol](contracts/test/Integration.t.sol)
+  (worker within the narrowed cap works, over it reverts, a broken chain reverts).
+
+**Best use of Venice AI** — Venice is the decision that gates every payment.
+- The Venice client (structured verdict, risk flags, fails closed): [sdk/src/venice.ts](sdk/src/venice.ts)
+  (`makeVeniceBrain`), tested in [sdk/test/venice.test.ts](sdk/test/venice.test.ts).
+- Its verdict is signed into the on-chain attestation: [sdk/src/policy-service.ts](sdk/src/policy-service.ts).
+- Venice also powers the conversational agent: `createOpenAI({ baseURL: api.venice.ai })` in
+  [console/app/api/agent/route.ts](console/app/api/agent/route.ts).
+
 ## What it protects against (and what it doesn't)
 
 Protects against:

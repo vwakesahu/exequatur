@@ -3,9 +3,9 @@
 import { useCallback, useState } from "react";
 import { useAccount } from "wagmi";
 import type { Hex } from "viem";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle2Icon, XCircleIcon } from "lucide-react";
+import { AccentButton } from "@/components/ui/accent-button";
+import { Orb } from "@/components/console/orb";
 import { fetchJson, short, type Info } from "@/lib/console-client";
 import { buildSmartAccount, signGrant } from "@/lib/grant";
 import type { ConsoleSession } from "@/lib/session";
@@ -28,7 +28,15 @@ const STEP_LABELS: Record<StepKey, string> = {
 };
 const STEP_ORDER: StepKey[] = ["prepare", "activate", "deploy", "grant", "fund"];
 
-export function Onboarding({ info, onComplete }: { info: Info; onComplete: (s: ConsoleSession) => void }) {
+export function Onboarding({
+  info,
+  onComplete,
+  onBack,
+}: {
+  info: Info;
+  onComplete: (s: ConsoleSession) => void;
+  onBack?: () => void;
+}) {
   const { address, connector } = useAccount();
   const [cap, setCap] = useState("5");
   const [steps, setSteps] = useState<Step[]>([]);
@@ -80,61 +88,68 @@ export function Onboarding({ info, onComplete }: { info: Info; onComplete: (s: C
   }, [address, connector, info, cap, patch, onComplete]);
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Activate your agent</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xs text-muted-foreground">
-            Create a smart account you control, set a spend allowance, and grant your agent scoped access
-            under the on-chain firewall. You sign once. Deploy, funding, and gas are sponsored.
-          </p>
-          <label className="block space-y-1">
-            <span className="text-muted-foreground">Spend allowance (mUSDC)</span>
-            <Input value={cap} onChange={(e) => setCap(e.target.value)} inputMode="decimal" className="max-w-40" />
-          </label>
-          <Button onClick={activate} disabled={running || !address} className="w-full">
-            {running ? "Activating…" : "Activate, set policy & grant"}
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="flex min-h-0 flex-1 overflow-y-auto px-6 py-12">
+      <div className="m-auto w-full max-w-md space-y-6 pb-32">
 
-      {steps.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Activation</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Orb size="md" state="idle" />
+          <div className="space-y-1.5">
+            <h1 className="text-lg font-medium">Activate your agent</h1>
+            <p className="text-sm text-muted-foreground">
+              Create a smart account you control, set a spend allowance, and grant your agent scoped access under the on-chain firewall. You
+              sign once; deploy, funding, and gas are sponsored.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4 rounded-2xl border border-border/50 bg-card/40 p-5">
+          <label className="block space-y-1.5">
+            <span className="text-xs text-muted-foreground">Spend allowance (mUSDC)</span>
+            <input
+              value={cap}
+              onChange={(e) => setCap(e.target.value)}
+              inputMode="decimal"
+              className="w-full rounded-xl border border-border/60 bg-card/60 px-3 py-2 text-sm transition focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
+            />
+          </label>
+          <AccentButton onClick={activate} disabled={running || !address} size="lg" className="w-full">
+            {running ? <Orb size="icon" className="size-5" /> : "Activate, set policy & grant"}
+          </AccentButton>
+        </div>
+
+        {steps.length > 0 && (
+          <div className="space-y-3 rounded-2xl border border-border/50 bg-card/40 p-5">
             {steps.map((s) => (
               <div key={s.key} className="flex items-start gap-3">
-                <span
-                  className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
-                    s.status === "done"
-                      ? "bg-green-500"
-                      : s.status === "running"
-                        ? "bg-yellow-500 animate-pulse"
-                        : s.status === "error"
-                          ? "bg-destructive"
-                          : "bg-muted-foreground/30"
-                  }`}
-                />
+                <StepIcon status={s.status} />
                 <div className="min-w-0 flex-1">
-                  <div>{s.label}</div>
+                  <div className="text-sm">{s.label}</div>
                   {s.detail && <div className="truncate text-xs text-muted-foreground">{s.detail}</div>}
                   {s.txHash && (
-                    <a className="text-xs underline" href={`${info.explorerTxBase}${s.txHash}`} target="_blank" rel="noreferrer">
+                    <a
+                      className="text-xs text-foreground/70 underline-offset-2 hover:underline"
+                      href={`${info.explorerTxBase}${s.txHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       {short(s.txHash)} ↗
                     </a>
                   )}
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
+      </div>
     </div>
   );
+}
+
+function StepIcon({ status }: { status: StepStatus }) {
+  if (status === "running") return <Orb size="icon" className="mt-0.5 size-4 shrink-0" />;
+  if (status === "done") return <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-emerald-400" />;
+  if (status === "error") return <XCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />;
+  return <span className="mt-1.5 size-2 shrink-0 rounded-full border border-border" />;
 }

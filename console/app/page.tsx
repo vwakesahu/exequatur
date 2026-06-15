@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } from "wagmi";
+import { useCallback, useEffect, useState } from "react";
+import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangleIcon } from "lucide-react";
+import { AccentButton } from "@/components/ui/accent-button";
+import { Orb } from "@/components/console/orb";
 import { Onboarding } from "@/components/console/onboarding";
 import { Console } from "@/components/console/chat";
-import { Settings } from "@/components/console/settings";
-import { fetchJson, short, type Info } from "@/lib/console-client";
+import { Sidebar } from "@/components/console/sidebar";
+import { fetchJson, type Info } from "@/lib/console-client";
 import {
   addToHistory,
   clearSession,
@@ -24,8 +24,9 @@ import {
 } from "@/lib/session";
 
 export default function Page() {
-  const { address, isConnected, connector } = useAccount();
-  const chainId = useChainId();
+  // chainId from useAccount() is the *wallet's* actual network (reactive to wallet network switches);
+  // useChainId() only reflects the config's chain, so it never detected a wrong network.
+  const { address, isConnected, chainId } = useAccount();
   const { connect, connectors, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
@@ -33,21 +34,59 @@ export default function Page() {
   const [info, setInfo] = useState<Info | null>(null);
   const [session, setSession] = useState<ConsoleSession | null>(null);
   const [sessions, setSessions] = useState<StoredSession[]>([]);
-  const [showSettings, setShowSettings] = useState(false);
+  const [composing, setComposing] = useState(false);
+  const [balance, setBalance] = useState<string>();
+  const [remaining, setRemaining] = useState<string>();
   const [error, setError] = useState<string>();
 
-  const wrongChain = isConnected && chainId !== baseSepolia.id;
+  const wrongChain = isConnected && chainId != null && chainId !== baseSepolia.id;
 
   function refreshHistory() {
     if (address) setSessions(loadHistory(address, baseSepolia.id));
   }
 
-  // Record a new grant in history and make it the active session.
+  // Balance + remaining allowance for the active session (shown in the sidebar, used by the chat).
+  const refreshBalance = useCallback(async () => {
+    if (!session) {
+      setBalance(undefined);
+      setRemaining(undefined);
+      return;
+    }
+    try {
+      const r = await fetchJson<{ balance: string; remaining?: string }>("/api/balance", {
+        address: session.smartAccount,
+        delegation: session.signedDelegation,
+        cap: session.cap,
+      });
+      setBalance(r.balance);
+      if (r.remaining != null) setRemaining(r.remaining);
+    } catch {
+      /* ignore */
+    }
+  }, [session]);
+  useEffect(() => {
+    refreshBalance();
+  }, [refreshBalance]);
+
+  const fund = useCallback(async () => {
+    if (!session) return;
+    await fetchJson("/api/fund", { to: session.smartAccount, amount: "10" });
+    await refreshBalance();
+  }, [session, refreshBalance]);
+
   function activate(s: ConsoleSession) {
     saveSession(s);
     addToHistory(s);
     setSession(s);
+    setComposing(false);
     refreshHistory();
+  }
+
+  function selectSession(s: StoredSession) {
+    if (s.revoked) return;
+    saveSession(s);
+    setSession(s);
+    setComposing(false);
   }
 
   async function revoke(targets: StoredSession[]) {
@@ -56,11 +95,9 @@ export default function Page() {
     await fetchJson("/api/revoke", { delegations: live.map((s) => s.signedDelegation) });
     markRevoked(live.map((s) => s.id));
     refreshHistory();
-    // If the active session was just revoked, drop back to onboarding.
     if (session && live.some((s) => s.id === sessionId(session))) {
       clearSession();
       setSession(null);
-      setShowSettings(false);
     }
   }
 
@@ -68,14 +105,11 @@ export default function Page() {
     fetchJson<Info>("/api/info").then(setInfo).catch((e) => setError(e.message));
   }, []);
 
-  // Detect a returning user: a stored session for this owner + chain skips onboarding - but only if
-  // it is still bound to the live agent/policy/enforcer. A rotated key would revert on-chain
-  // (InvalidDelegate), so a stale session is cleared and the user re-onboards cleanly.
   useEffect(() => {
     if (!(isConnected && address && !wrongChain && info)) {
       setSession(null);
       setSessions([]);
-      setShowSettings(false);
+      setComposing(false);
       return;
     }
     const s = loadSession(address, baseSepolia.id);
@@ -85,104 +119,84 @@ export default function Page() {
       setSessions(loadHistory(address, baseSepolia.id));
       return;
     }
-    if (s) addToHistory(s); // a returning session predating history still shows in Settings
+    if (s) addToHistory(s);
     setSession(s);
     setSessions(loadHistory(address, baseSepolia.id));
   }, [address, isConnected, wrongChain, info]);
 
-  const ready = isConnected && !wrongChain && info && connector;
+  // Not connected: a focused, full-screen connect.
+  if (!isConnected) {
+    return (
+      <div className="grid h-svh place-items-center px-6">
+        <div className="flex max-w-sm flex-col items-center gap-6 text-center">
+          <Orb size="lg" state="idle" />
+          <div className="space-y-1.5">
+            <h1 className="text-lg font-medium">Connect your wallet</h1>
+            <p className="text-sm text-muted-foreground">
+              Your wallet authorizes the agent once. Every payment it makes is still gated by the on-chain firewall.
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            {connectors.map((c) => (
+              <AccentButton key={c.uid} disabled={isPending} onClick={() => connect({ connector: c })}>
+                Connect {c.name}
+              </AccentButton>
+            ))}
+          </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12 font-mono text-sm">
-      <header className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Exequatur</h1>
-          <p className="mt-1 text-muted-foreground">Your agent pays under an on-chain firewall.</p>
-        </div>
-        {isConnected && (
-          <div className="flex flex-col items-end gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              {wrongChain ? <Badge variant="destructive">wrong chain</Badge> : <Badge variant="secondary">Base Sepolia</Badge>}
-              <span className="text-muted-foreground">{short(address)}</span>
-            </div>
-            <div className="flex gap-2">
-              {wrongChain && (
-                <Button size="sm" variant="outline" onClick={() => switchChain({ chainId: baseSepolia.id })}>
-                  Switch
-                </Button>
-              )}
-              {sessions.length > 0 && (
-                <Button size="sm" variant="ghost" onClick={() => setShowSettings((v) => !v)}>
-                  {showSettings ? "Back" : "Settings"}
-                </Button>
-              )}
-              {session && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    clearSession();
-                    setSession(null);
-                  }}
-                >
-                  Start over
-                </Button>
-              )}
-              <Button size="sm" variant="ghost" onClick={() => disconnect()}>
-                Disconnect
-              </Button>
-            </div>
-          </div>
+    <div className="flex h-svh overflow-hidden text-sm">
+      <Sidebar
+        sessions={sessions}
+        activeId={session ? sessionId(session) : undefined}
+        address={address!}
+        smartAccount={session?.smartAccount}
+        cap={session?.cap}
+        balance={balance}
+        remaining={remaining}
+        explorerAddressBase={info?.explorerAddressBase}
+        onSelect={selectSession}
+        onNew={() => setComposing(true)}
+        onRevoke={(s) => revoke([s])}
+        onRevokeAll={() => revoke(sessions)}
+        onFund={fund}
+        onDisconnect={() => disconnect()}
+      />
+
+      <main className="flex min-w-0 flex-1 flex-col">
+        {!info ? (
+          <div className="grid flex-1 place-items-center">{error ? <span className="text-xs text-destructive">{error}</span> : <Orb size="md" />}</div>
+        ) : session && !composing ? (
+          <Console info={info} session={session} onSession={activate} balance={balance} remaining={remaining} refreshBalance={refreshBalance} fund={fund} />
+        ) : (
+          <Onboarding info={info} onComplete={activate} onBack={sessions.length > 0 ? () => setComposing(false) : undefined} />
         )}
-      </header>
+      </main>
 
-      {!isConnected && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Connect your wallet</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {connectors.map((c) => (
-              <Button key={c.uid} size="sm" disabled={isPending} onClick={() => connect({ connector: c })}>
-                Connect {c.name}
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      {wrongChain && <ChainModal onSwitch={() => switchChain({ chainId: baseSepolia.id })} />}
+    </div>
+  );
+}
 
-      {isConnected && wrongChain && (
-        <p className="text-xs text-muted-foreground">Switch to Base Sepolia to continue.</p>
-      )}
-
-      {ready && showSettings && (
-        <Settings
-          info={info}
-          sessions={sessions}
-          activeId={session ? sessionId(session) : undefined}
-          onRevoke={(s) => revoke([s])}
-          onRevokeAll={() => revoke(sessions)}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-
-      {ready && !showSettings && session && (
-        <>
-          <div className="mb-4 text-xs text-muted-foreground">
-            smart account{" "}
-            <a className="underline" href={`${info.explorerAddressBase}${session.smartAccount}`} target="_blank" rel="noreferrer">
-              {short(session.smartAccount)}
-            </a>{" "}
-            · cap {session.cap} mUSDC · agent {short(info.agent)}
-          </div>
-          <Console info={info} session={session} onSession={activate} />
-        </>
-      )}
-
-      {ready && !showSettings && !session && <Onboarding info={info} onComplete={activate} />}
-
-      {!info && !error && isConnected && !wrongChain && <p className="text-xs text-muted-foreground">Loading…</p>}
-      {error && <p className="mt-4 text-xs text-destructive">{error}</p>}
-    </main>
+/** Shown over everything when the wallet is on the wrong network. No action can run until switched. */
+function ChainModal({ onSwitch }: { onSwitch: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 px-6 backdrop-blur-sm">
+      <div className="flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-border/60 bg-card/95 p-8 text-center shadow-2xl">
+        <span className="grid size-12 place-items-center rounded-2xl border border-destructive/40 bg-destructive/10 text-destructive">
+          <AlertTriangleIcon className="size-6" />
+        </span>
+        <div className="space-y-1">
+          <h2 className="text-base font-medium">Wrong network</h2>
+          <p className="text-sm text-muted-foreground">Switch your wallet to Base Sepolia to continue.</p>
+        </div>
+        <AccentButton onClick={onSwitch}>Switch to Base Sepolia</AccentButton>
+      </div>
+    </div>
   );
 }

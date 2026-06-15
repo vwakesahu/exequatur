@@ -1,7 +1,7 @@
 import { YouTubePlayer } from "@/components/ui/cult/youtube-player";
 
-// Replace with the exequatur demo video id (or a full youtube url).
-const DEMO_VIDEO = "dQw4w9WgXcQ";
+// The Exequatur demo video.
+const DEMO_VIDEO = "ltH6yTOqUtI";
 
 const BASESCAN_HAPPY =
   "https://sepolia.basescan.org/tx/0x3f4e8c0b160f4540d659a980710b1bcba7cd0e9a667d3dc5c39f0cb2397ebfdf";

@@ -1,4 +1,18 @@
-# Delegation Firewall Agent
+<p align="center">
+  <img src="console/public/orb.png" alt="Exequatur" width="92" height="92" />
+</p>
+
+<h1 align="center">Exequatur</h1>
+
+<p align="center">A firewall for autonomous payment agents.</p>
+
+## Why "Exequatur"
+
+*Exequatur* is Latin for "let it be executed": an official authorization permitting an act to
+proceed. An almost uncanny fit. Here, the policy's attestation is an exequatur for the agent's
+action. No exequatur, no execution.
+
+---
 
 This is a firewall for AI payment agents.
 
@@ -13,8 +27,10 @@ If the agent goes rogue, the policy service just won't sign, and the on-chain re
 Even if the agent forges its own signature, the enforcer checks it against the policy key baked into
 the delegation and rejects it.
 
-Status: backend + end-to-end, no frontend. Built for the A2A coordination, Best Agent, and Best use
-of Venice tracks.
+Status: live end to end, with a connected-wallet console (Next.js App Router) and a landing page,
+both deployed. Built for the A2A coordination, Best Agent, and Best use of Venice tracks.
+
+Live: app [app.exequatur.xyz](https://app.exequatur.xyz) · landing [exequatur.xyz](https://exequatur.xyz)
 
 ## How it works
 
@@ -44,6 +60,8 @@ I'd rather state the boundary honestly than claim it stops everything.
 contracts/   Foundry. MockUSDC + the AttestationEnforcer caveat + tests. Runs offline.
 sdk/         TypeScript. The real create/sign/redeem flow on the MetaMask Smart Accounts Kit,
              the policy service, the Venice client, and the end-to-end runner.
+console/     Next.js console (App Router). Connect a wallet, grant a scoped delegation, then chat
+             with the agent; every payment runs the firewall live. Consumes the SDK (pnpm workspace).
 landing/     Next.js landing page (TypeScript, three.js shader hero). See landing/README.md.
 ```
 

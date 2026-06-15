@@ -1,0 +1,10 @@
+# secrets - never upload (Vercel ignores .gitignore, so be explicit)
+**/.env
+**/.env.*
+last-run.json
+revocations.json
+# not needed to build the console
+landing
+contracts
+docs
+**/*.md

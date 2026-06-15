@@ -40,6 +40,39 @@ The attestation is bound to the exact action (chain, delegation, target, amount,
 and an expiry), so a signature for one payment can't be reused for another. It's single use, keyed
 per delegation, so replay doesn't work.
 
+## Architecture
+
+Three trust boundaries, layered so that compromising one doesn't open the gate.
+
+**The grant (you sign once).** Your MetaMask smart account (the *delegator*) signs a single scoped
+delegation to an agent EOA (the *delegate*): a spend cap (the Kit's ERC20TransferAmountEnforcer) plus
+a custom **AttestationEnforcer** caveat pinned to a policy signer. In the console the connected wallet
+is the signatory (ERC-7710), and deploy, gas, and funding are sponsored, so the user only signs once.
+
+**The policy (off-chain decision).** Every proposed payment is screened (a sanctions / risk check on
+the recipient) and then handed to a policy service that calls Venice with your plain-language intent,
+the exact proposed action, and any untrusted context the agent saw (a seller's pitch, a pasted
+email). Venice returns a structured verdict; on approve, the service signs an **attestation** bound to
+the action (chain, delegation, target, amount, calldata, nonce, expiry). It fails closed: an error, a
+timeout, or garbage output all mean deny.
+
+**The enforcer (on-chain).** The agent redeems the delegation through the canonical DelegationManager.
+The AttestationEnforcer recomputes the action hash and verifies the attestation against the policy key
+baked into the caveat. No fresh, matching signature means the redemption reverts. The attestation is
+single-use and keyed per delegation, so an old approval can't be replayed and one payment's signature
+can't be reused for another.
+
+**A2A.** The agent can redelegate a *narrower* cap to a worker EOA. Both hops carry the attestation
+caveat, so the firewall gates the worker too, and a payment over the narrowed cap reverts on-chain.
+
+**Revoke.** Revoking a delegation tells the policy to stop attesting it, so the next redemption
+reverts at the enforcer (no fresh attestation). It is enforced on-chain and needs no bundler.
+
+No bundler is used anywhere: the agent and worker are plain EOAs, so a redemption is an ordinary
+transaction to the DelegationManager (the ERC-7710 wallet action), and only the delegator is a smart
+account. The console keeps every private key and the policy server-side; the browser only builds and
+signs the delegation with the user's wallet.
+
 ## What it protects against (and what it doesn't)
 
 Protects against:
@@ -98,21 +131,21 @@ End-to-end, 6 scenarios, against a Base Sepolia fork or real Base Sepolia:
   on-chain, the A2A worker paying within its narrower scope, and the worker getting reverted when it
   goes over that scope
 
-### Run live on Base Sepolia (real Venice, qwen3-4b)
+### Live on Base Sepolia (real Venice, qwen3-6-27b)
 
-I ran the whole thing on real Base Sepolia with Venice actually making the call:
+The deployed console ([app.exequatur.xyz](https://app.exequatur.xyz)) runs against pinned,
+deploy-once fixtures (`sdk/src/config.ts`); the canonical DelegationManager comes from the Smart
+Accounts Kit:
 
-| | on-chain |
+| | on Base Sepolia |
 |---|---|
-| agent pays 25 mUSDC, Venice approved | [tx 0x3f4e8c0b](https://sepolia.basescan.org/tx/0x3f4e8c0b160f4540d659a980710b1bcba7cd0e9a667d3dc5c39f0cb2397ebfdf) |
-| A2A worker pays 15 mUSDC in its narrowed scope | [tx 0x0dfff0d3](https://sepolia.basescan.org/tx/0x0dfff0d31fac997930e0ae8f8833aaf51013a1e0b1330ef38adf016e9af3b95f) |
-| AttestationEnforcer (the firewall caveat) | [0xe73a...65f9](https://sepolia.basescan.org/address/0xe73a140b9dc243a6885eeccf1da18c39908865f9) |
-| MockUSDC | [0xe4e2...6026](https://sepolia.basescan.org/address/0xe4e24711cb7fd5a08c6315b4d30baf35802c6026) |
+| AttestationEnforcer (the firewall caveat) | [0xF16c...253c9](https://sepolia.basescan.org/address/0xf16c36b6c2a3b539074f56697947a8d931d253c9) |
+| MockUSDC | [0xb04e...235DD](https://sepolia.basescan.org/address/0xb04e3063545f6a8658a0421c66fa3977ae3235dd) |
+| a payment cleared through the firewall | [tx 0x159580fc](https://sepolia.basescan.org/tx/0x159580fc3005f7e75c47bd11e8b0437c907eb70746f8692f3944c70f76d904c2) |
 
-On the attack scenario, Venice denied it on its own and flagged `prompt_injection`,
-`intent_mismatch`, `amount_exceeds_intent`, and `unknown_recipient`. The forged-attestation and
-over-cap scenarios revert before any money moves, so there's nothing to see on the explorer for those
-beyond the failure.
+On the attack scenario, Venice denies it on its own and flags `prompt_injection`, `intent_mismatch`,
+`amount_exceeds_intent`, and `unknown_recipient`. The forged-attestation and over-cap scenarios
+revert before any money moves, so there's nothing to see on the explorer for those beyond the failure.
 
 ## Running it
 
@@ -135,8 +168,9 @@ cd sdk && pnpm e2e
 ```
 
 By default the policy uses a deterministic stub so the tests are reproducible and don't need a
-network. To use real Venice, put `VENICE_API_KEY` in `sdk/.env` (and optionally `VENICE_MODEL`,
-default `qwen3-4b`). See [.env.example](.env.example). The Venice call is the real decision: it reads
+network. To use real Venice, put `VENICE_API_KEY` in `sdk/.env` (and optionally `VENICE_MODEL`; the
+console uses `qwen3-6-27b`, which is far more reliable than the small `qwen3-4b` default). See
+[.env.example](.env.example). The Venice call is the real decision: it reads
 your plain-language intent plus the proposed action and the untrusted context the agent saw, and it
 fails closed, so an error, a timeout, or garbage output all mean "deny" and nothing moves. The
 account needs inference credits or you'll get a 402 and every payment is refused.

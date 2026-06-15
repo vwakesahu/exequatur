@@ -32,6 +32,8 @@ both deployed. Built for the A2A coordination, Best Agent, and Best use of Venic
 
 Live: app [app.exequatur.xyz](https://app.exequatur.xyz) · landing [exequatur.xyz](https://exequatur.xyz)
 
+Pitch deck: [exequatur.pdf](pitch/exequatur.pdf)
+
 ## How it works
 
 ![Architecture](docs/arc.png)
